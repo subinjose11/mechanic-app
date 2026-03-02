@@ -1,0 +1,115 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env
+.env.*
+.env*.local
+
+# typescript
+*.tsbuildinfo
+
+# generated native folders
+/ios
+/android
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Testing
+coverage/
+
+# Build
+*.ipa
+*.apk
+*.aab
+
+# Bundle artifacts
+*.hbc
+*.bundle
+
+# Temporary files
+tmp/
+temp/
+
+# EAS Build
+.eas/
+eas-build-*.json
+
+# Watchman
+.watchmanconfig
+
+# Buck
+.buckconfig
+buck-out/
+\.buckd/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+
+# CocoaPods (if iOS is generated)
+Pods/
+Podfile.lock
+
+# Gradle (if Android is generated)
+.gradle/
+local.properties
+*.hprof
+
+# Android build files
+*.dex
+
+# Editor directories
+*.sublime-workspace
+*.sublime-project
+
+# OS generated
+Thumbs.db
+ehthumbs.db
+
+# Expo EAS
+.easignore
+
+# Secrets (just in case)
+secrets/
+*.secret
+google-services.json
+GoogleService-Info.plist
