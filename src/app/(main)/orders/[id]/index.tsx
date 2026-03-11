@@ -80,7 +80,7 @@ export default function OrderDetailScreen() {
       <TopBar
         title="Order Details"
         showBack
-        rightElement={
+        rightAction={
           <Menu
             visible={menuVisible}
             onDismiss={() => setMenuVisible(false)}
@@ -274,7 +274,7 @@ export default function OrderDetailScreen() {
           <GlassCard style={styles.sectionCard} contentStyle={styles.sectionCardContent}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Payments</Text>
-              <Button mode="text" onPress={handleAddPayment} textColor={colors.primary}>
+              <Button mode="text" onPress={handleAddPayment}>
                 Add Payment
               </Button>
             </View>
@@ -332,7 +332,6 @@ export default function OrderDetailScreen() {
               icon="file-pdf-box"
               onPress={handleGeneratePDF}
               style={styles.actionButton}
-              textColor={colors.textPrimary}
             >
               Generate Invoice
             </Button>
