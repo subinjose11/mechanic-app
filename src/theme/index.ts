@@ -1,70 +1,62 @@
-import { MD3LightTheme, configureFonts } from 'react-native-paper';
+import { MD3DarkTheme } from 'react-native-paper';
 import { colors } from './colors';
 import { typography } from './typography';
+import { shadows } from './shadows';
+import { animations } from './animations';
+import { glass, glassStyles } from './glass';
 
 export const theme = {
-  ...MD3LightTheme,
+  ...MD3DarkTheme,
+  dark: true,
   colors: {
-    ...MD3LightTheme.colors,
+    ...MD3DarkTheme.colors,
     primary: colors.primary,
-    primaryContainer: colors.primaryLight,
+    primaryContainer: colors.primaryDim,
     secondary: colors.secondary,
-    secondaryContainer: colors.secondaryLight,
+    secondaryContainer: colors.secondaryDim,
     background: colors.background,
-    surface: colors.surface,
-    surfaceVariant: colors.surfaceVariant,
+    surface: colors.surfaceSolid,
+    surfaceVariant: colors.surfaceVariantSolid,
+    surfaceDisabled: colors.surfaceElevatedSolid,
     error: colors.error,
+    errorContainer: colors.errorDim,
     onPrimary: colors.textOnPrimary,
     onSecondary: colors.textOnSecondary,
     onBackground: colors.textPrimary,
     onSurface: colors.textPrimary,
     onSurfaceVariant: colors.textSecondary,
-    outline: colors.border,
+    onSurfaceDisabled: colors.textDisabled,
+    outline: colors.borderMedium,
     outlineVariant: colors.borderLight,
+    elevation: {
+      level0: 'transparent',
+      level1: colors.surfaceSolid,
+      level2: colors.surfaceVariantSolid,
+      level3: colors.surfaceElevatedSolid,
+      level4: colors.surfaceElevatedSolid,
+      level5: colors.surfaceElevatedSolid,
+    },
   },
-  roundness: 8,
+  roundness: 14,
 };
 
 export const spacing = {
   xs: 4,
   sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32,
-  xxl: 48,
+  md: 18,
+  lg: 28,
+  xl: 36,
+  xxl: 52,
 } as const;
 
 export const borderRadius = {
-  sm: 4,
-  md: 8,
-  lg: 12,
-  xl: 16,
+  sm: 10,
+  md: 14,
+  lg: 18,
+  xl: 22,
+  xxl: 26,
   round: 9999,
 } as const;
 
-export const shadows = {
-  sm: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  md: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  lg: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-} as const;
-
-export { colors, typography };
+export { colors, typography, shadows, animations, glass, glassStyles };
 export type AppTheme = typeof theme;
