@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Text, IconButton } from 'react-native-paper';
 import { router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Input } from '@presentation/components/common';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Button, Input, TopBar } from '@presentation/components/common';
 import { useCreateCustomer } from '@presentation/viewmodels/useCustomers';
 import { colors } from '@theme/colors';
 import { isValidPhone, isValidEmail } from '@core/utils/validators';
 
 export default function NewCustomerScreen() {
+  const insets = useSafeAreaInsets();
   const createCustomerMutation = useCreateCustomer();
   const [form, setForm] = useState({
     name: '',
@@ -54,10 +55,15 @@ export default function NewCustomerScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <View style={styles.container}>
+      <TopBar title="New Customer" />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-          <Text style={styles.sectionTitle}>Customer Information</Text>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Text style={styles.sectionTitle}>CUSTOMER INFORMATION</Text>
 
           <Input
             label="Full Name *"
@@ -108,22 +114,53 @@ export default function NewCustomerScreen() {
           />
         </ScrollView>
 
-        <View style={styles.footer}>
-          <Button onPress={() => router.back()} mode="outlined" style={styles.footerButton}>Cancel</Button>
-          <Button onPress={handleSubmit} loading={createCustomerMutation.isPending} style={styles.footerButton}>Add Customer</Button>
+        <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
+          <Button onPress={() => router.back()} mode="outlined" style={styles.footerButton}>
+            Cancel
+          </Button>
+          <Button onPress={handleSubmit} loading={createCustomerMutation.isPending} style={styles.footerButton}>
+            Add Customer
+          </Button>
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  keyboardView: { flex: 1 },
-  scrollView: { flex: 1 },
-  scrollContent: { padding: 16, paddingBottom: 100 },
-  sectionTitle: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginBottom: 16 },
-  spacing: { height: 16 },
-  footer: { flexDirection: 'row', gap: 12, padding: 16, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.border },
-  footerButton: { flex: 1 },
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textDisabled,
+    marginBottom: 16,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+  },
+  spacing: {
+    height: 16,
+  },
+  footer: {
+    flexDirection: 'row',
+    gap: 12,
+    padding: 16,
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  footerButton: {
+    flex: 1,
+  },
 });

@@ -3,6 +3,7 @@ import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 're
 import { Text, IconButton } from 'react-native-paper';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Button, Input } from '@presentation/components/common';
 import { useAuth } from '@presentation/viewmodels/useAuth';
 import { colors } from '@theme/colors';
@@ -61,97 +62,123 @@ export default function ShopSetupScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
+    <View style={styles.container}>
+      {/* Background gradient */}
+      <LinearGradient
+        colors={['#12103a', '#08080c']}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 0.55 }}
+        style={StyleSheet.absoluteFill}
+      />
+
+      {/* Orb glow effect */}
+      <View style={styles.orb} />
+
+      <SafeAreaView style={styles.safeArea}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardView}
         >
-          <View style={styles.header}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Logo */}
+            <View style={styles.logoContainer}>
+              <LinearGradient
+                colors={[colors.primary, colors.primaryDark]}
+                style={styles.logo}
+              >
+                <Text style={styles.logoIcon}>🏪</Text>
+              </LinearGradient>
+            </View>
+
+            {/* Welcome text */}
             <Text style={styles.welcomeText}>Welcome, {user?.name || 'there'}!</Text>
-            <Text style={styles.title}>Set Up Your Shop</Text>
-            <Text style={styles.subtitle}>
-              Add your shop details to display on invoices and connect with customers
-            </Text>
-          </View>
+            <Text style={styles.tagline}>LET'S SET UP YOUR SHOP</Text>
 
-          <View style={styles.form}>
-            <Input
-              label="Shop Name"
-              value={shopName}
-              onChangeText={(text) => {
-                setShopName(text);
-                if (validationErrors.shopName) {
-                  setValidationErrors((prev) => ({ ...prev, shopName: undefined }));
-                }
-              }}
-              placeholder="e.g., Kumar Auto Works"
-              autoCapitalize="words"
-              error={validationErrors.shopName}
-              left={<IconButton icon="store" size={20} />}
-            />
+            {/* Setup card */}
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Shop Details</Text>
+              <Text style={styles.cardSubtitle}>
+                Add your shop information for invoices and customers
+              </Text>
 
-            <View style={styles.inputSpacing} />
+              <Input
+                label="Shop Name"
+                value={shopName}
+                onChangeText={(text) => {
+                  setShopName(text);
+                  if (validationErrors.shopName) {
+                    setValidationErrors((prev) => ({ ...prev, shopName: undefined }));
+                  }
+                }}
+                placeholder="e.g., Kumar Auto Works"
+                autoCapitalize="words"
+                error={validationErrors.shopName}
+                left={<IconButton icon="store" size={20} iconColor={colors.textDisabled} />}
+              />
 
-            <Input
-              label="Shop Phone"
-              value={shopPhone}
-              onChangeText={(text) => {
-                setShopPhone(text);
-                if (validationErrors.shopPhone) {
-                  setValidationErrors((prev) => ({ ...prev, shopPhone: undefined }));
-                }
-              }}
-              placeholder="e.g., 9876543210"
-              keyboardType="phone-pad"
-              maxLength={10}
-              error={validationErrors.shopPhone}
-              left={<IconButton icon="phone" size={20} />}
-            />
+              <View style={styles.inputSpacing} />
 
-            <View style={styles.inputSpacing} />
+              <Input
+                label="Shop Phone"
+                value={shopPhone}
+                onChangeText={(text) => {
+                  setShopPhone(text);
+                  if (validationErrors.shopPhone) {
+                    setValidationErrors((prev) => ({ ...prev, shopPhone: undefined }));
+                  }
+                }}
+                placeholder="e.g., 9876543210"
+                keyboardType="phone-pad"
+                maxLength={10}
+                error={validationErrors.shopPhone}
+                left={<IconButton icon="phone" size={20} iconColor={colors.textDisabled} />}
+              />
 
-            <Input
-              label="Shop Address"
-              value={shopAddress}
-              onChangeText={(text) => {
-                setShopAddress(text);
-                if (validationErrors.shopAddress) {
-                  setValidationErrors((prev) => ({ ...prev, shopAddress: undefined }));
-                }
-              }}
-              placeholder="Enter your shop's full address"
-              multiline
-              numberOfLines={3}
-              error={validationErrors.shopAddress}
-              left={<IconButton icon="map-marker" size={20} />}
-            />
+              <View style={styles.inputSpacing} />
 
-            {error && (
-              <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            )}
+              <Input
+                label="Shop Address"
+                value={shopAddress}
+                onChangeText={(text) => {
+                  setShopAddress(text);
+                  if (validationErrors.shopAddress) {
+                    setValidationErrors((prev) => ({ ...prev, shopAddress: undefined }));
+                  }
+                }}
+                placeholder="Enter your shop's full address"
+                multiline
+                numberOfLines={3}
+                error={validationErrors.shopAddress}
+                left={<IconButton icon="map-marker" size={20} iconColor={colors.textDisabled} />}
+              />
 
-            <Button
-              onPress={handleSetup}
-              loading={isLoading}
-              fullWidth
-              style={styles.button}
-            >
-              Complete Setup
-            </Button>
+              {error && (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>{error}</Text>
+                </View>
+              )}
+
+              <Button
+                onPress={handleSetup}
+                loading={isLoading}
+                fullWidth
+                style={styles.button}
+              >
+                Complete Setup
+              </Button>
+            </View>
 
             <Text style={styles.note}>
               You can update these details later from Settings
             </Text>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </View>
   );
 }
 
@@ -160,58 +187,101 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  orb: {
+    position: 'absolute',
+    top: -80,
+    left: '50%',
+    marginLeft: -140,
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    backgroundColor: 'rgba(99,102,241,0.18)',
+  },
+  safeArea: {
+    flex: 1,
+  },
   keyboardView: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 24,
-  },
-  header: {
+    padding: 32,
     alignItems: 'center',
-    marginBottom: 32,
+  },
+  logoContainer: {
+    marginBottom: 20,
+  },
+  logo: {
+    width: 76,
+    height: 76,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.4,
+    shadowRadius: 40,
+    elevation: 12,
+  },
+  logoIcon: {
+    fontSize: 32,
   },
   welcomeText: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    marginBottom: 8,
-  },
-  title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '700',
-    color: colors.primary,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.textPrimary,
+    letterSpacing: -0.5,
     textAlign: 'center',
-    lineHeight: 20,
   },
-  form: {
+  tagline: {
+    fontSize: 12,
+    color: colors.textDisabled,
+    letterSpacing: 2.5,
+    marginTop: 8,
+    marginBottom: 36,
+  },
+  card: {
     width: '100%',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    borderRadius: 22,
+    padding: 24,
+  },
+  cardTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: 4,
+  },
+  cardSubtitle: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: 22,
   },
   inputSpacing: {
-    height: 16,
+    height: 10,
   },
   errorContainer: {
-    backgroundColor: `${colors.error}10`,
+    backgroundColor: colors.errorDim,
+    borderWidth: 1,
+    borderColor: colors.errorBorder,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 11,
     marginTop: 16,
   },
   errorText: {
     color: colors.error,
-    fontSize: 14,
+    fontSize: 13,
     textAlign: 'center',
   },
   button: {
-    marginTop: 24,
+    marginTop: 6,
   },
   note: {
     fontSize: 12,
-    color: colors.textSecondary,
+    color: colors.textDisabled,
     textAlign: 'center',
     marginTop: 16,
   },

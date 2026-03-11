@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { Text, Icon, IconButton, Menu, Divider, ActivityIndicator } from 'react-native-paper';
-import { useLocalSearchParams, router, Stack } from 'expo-router';
-import { Card, Button, StatusBadge } from '@presentation/components/common';
+import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { Text, Icon, Menu, Divider, ActivityIndicator } from 'react-native-paper';
+import { useLocalSearchParams, router } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Card, Button, StatusBadge, TopBar, IconButton } from '@presentation/components/common';
 import { useVehicle } from '@presentation/viewmodels/useVehicles';
 import { useCustomer } from '@presentation/viewmodels/useCustomers';
 import { useOrdersByVehicle } from '@presentation/viewmodels/useOrders';
@@ -12,6 +14,7 @@ import { formatDate } from '@core/utils/formatDate';
 export default function VehicleDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [menuVisible, setMenuVisible] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const { data: vehicle, isLoading: loadingVehicle } = useVehicle(id || '');
   const { data: customer, isLoading: loadingCustomer } = useCustomer(vehicle?.customerId || '');
@@ -37,6 +40,18 @@ export default function VehicleDetailScreen() {
     // TODO: Implement QR generation
   };
 
+  // Get vehicle emoji based on type
+  const getVehicleEmoji = () => {
+    const make = vehicle?.make?.toLowerCase() || '';
+    if (make.includes('bike') || make.includes('motorcycle') || make.includes('scooter')) {
+      return '🛵';
+    }
+    if (make.includes('truck')) {
+      return '🚛';
+    }
+    return '🚗';
+  };
+
   if (loadingVehicle || !vehicle) {
     return (
       <View style={styles.loadingContainer}>
@@ -47,146 +62,177 @@ export default function VehicleDetailScreen() {
   }
 
   return (
-    <>
-      <Stack.Screen
-        options={{
-          title: `${vehicle.make} ${vehicle.model}`,
-          headerRight: () => (
-            <Menu
-              visible={menuVisible}
-              onDismiss={() => setMenuVisible(false)}
-              anchor={
-                <IconButton
-                  icon="dots-vertical"
-                  iconColor={colors.textOnPrimary}
-                  onPress={() => setMenuVisible(true)}
-                />
-              }
-            >
-              <Menu.Item onPress={handleEdit} title="Edit" leadingIcon="pencil" />
-              <Menu.Item onPress={handleGenerateQR} title="Generate QR" leadingIcon="qrcode" />
-              <Divider />
-              <Menu.Item
-                onPress={handleDelete}
-                title="Delete"
-                leadingIcon="delete"
-                titleStyle={{ color: colors.error }}
+    <View style={styles.container}>
+      <TopBar
+        title="Vehicle Details"
+        rightAction={
+          <Menu
+            visible={menuVisible}
+            onDismiss={() => setMenuVisible(false)}
+            anchor={
+              <IconButton
+                icon="dots-vertical"
+                onPress={() => setMenuVisible(true)}
               />
-            </Menu>
-          ),
-        }}
+            }
+            contentStyle={styles.menuContent}
+          >
+            <Menu.Item onPress={handleEdit} title="Edit" leadingIcon="pencil" />
+            <Menu.Item onPress={handleGenerateQR} title="Generate QR" leadingIcon="qrcode" />
+            <Divider />
+            <Menu.Item
+              onPress={handleDelete}
+              title="Delete"
+              leadingIcon="delete"
+              titleStyle={{ color: colors.error }}
+            />
+          </Menu>
+        }
       />
 
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Vehicle Info Card */}
-        <Card style={styles.card}>
-          <View style={styles.vehicleHeader}>
-            <View style={styles.vehicleIconContainer}>
-              <Icon source="car" size={32} color={colors.primary} />
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Hero Section with Gradient */}
+        <LinearGradient
+          colors={['#12103a', colors.background]}
+          style={styles.heroGradient}
+        >
+          <View style={styles.vehicleTop}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarEmoji}>{getVehicleEmoji()}</Text>
             </View>
             <View style={styles.vehicleInfo}>
               <Text style={styles.vehicleName}>
                 {vehicle.make} {vehicle.model}
               </Text>
               <Text style={styles.licensePlate}>{vehicle.licensePlate}</Text>
+              {vehicle.color && (
+                <View style={styles.colorBadge}>
+                  <View style={[styles.colorDot, { backgroundColor: vehicle.color.toLowerCase() }]} />
+                  <Text style={styles.colorText}>{vehicle.color}</Text>
+                </View>
+              )}
             </View>
-            {vehicle.color && (
-              <View style={[styles.colorBadge, { backgroundColor: vehicle.color.toLowerCase() }]}>
-                <Text style={styles.colorText}>{vehicle.color}</Text>
-              </View>
-            )}
           </View>
 
-          <View style={styles.detailsGrid}>
-            <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Year</Text>
-              <Text style={styles.detailValue}>{vehicle.year || '-'}</Text>
+          {/* Stats Cards */}
+          <View style={styles.statsRow}>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>{vehicle.year || '-'}</Text>
+              <Text style={styles.statLabel}>Year</Text>
             </View>
-            <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>VIN</Text>
-              <Text style={styles.detailValue} numberOfLines={1}>
-                {vehicle.vin || '-'}
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>{(orders || []).length}</Text>
+              <Text style={styles.statLabel}>Services</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>
+                {formatDate(vehicle.createdAt).split(' ')[0]}
               </Text>
-            </View>
-            <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Added</Text>
-              <Text style={styles.detailValue}>{formatDate(vehicle.createdAt)}</Text>
+              <Text style={styles.statLabel}>Added</Text>
             </View>
           </View>
+        </LinearGradient>
 
-          {vehicle.notes && (
-            <View style={styles.notesSection}>
-              <Text style={styles.notesLabel}>Notes</Text>
+        {/* VIN Section */}
+        {vehicle.vin && (
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>VIN NUMBER</Text>
+            <View style={styles.vinCard}>
+              <Icon source="car-info" size={16} color={colors.textDisabled} />
+              <Text style={styles.vinText}>{vehicle.vin}</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Notes Section */}
+        {vehicle.notes && (
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>NOTES</Text>
+            <Card style={styles.notesCard}>
               <Text style={styles.notesText}>{vehicle.notes}</Text>
-            </View>
-          )}
-        </Card>
+            </Card>
+          </View>
+        )}
 
-        {/* Owner Info Card */}
+        {/* Owner Section */}
         {customer && (
-          <Card style={styles.card}>
-            <Text style={styles.sectionTitle}>Owner</Text>
-            <View style={styles.ownerInfo}>
-              <View style={styles.ownerIconContainer}>
-                <Icon source="account" size={24} color={colors.textSecondary} />
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>OWNER</Text>
+            <Card
+              style={styles.ownerCard}
+              onPress={() => router.push(`/(main)/customers/${customer.id}`)}
+            >
+              <View style={styles.ownerTop}>
+                <View style={styles.ownerAvatar}>
+                  <Text style={styles.ownerInitials}>
+                    {customer.name
+                      .split(' ')
+                      .map((n) => n[0])
+                      .join('')
+                      .toUpperCase()
+                      .slice(0, 2)}
+                  </Text>
+                </View>
+                <View style={styles.ownerInfo}>
+                  <Text style={styles.ownerName}>{customer.name}</Text>
+                  <Text style={styles.ownerContact}>{customer.phone || 'No phone'}</Text>
+                </View>
+                <Icon source="chevron-right" size={20} color={colors.textDisabled} />
               </View>
-              <View style={styles.ownerDetails}>
-                <Text style={styles.ownerName}>{customer.name}</Text>
-                <Text style={styles.ownerContact}>{customer.phone || 'No phone'}</Text>
-                {customer.email && (
-                  <Text style={styles.ownerContact}>{customer.email}</Text>
-                )}
-              </View>
-              <IconButton
-                icon="phone"
-                size={20}
-                onPress={() => {
-                  // TODO: Open phone dialer
-                }}
-              />
-            </View>
-          </Card>
+            </Card>
+          </View>
         )}
 
         {/* Quick Actions */}
-        <View style={styles.actionsRow}>
+        <View style={styles.actions}>
           <Button
-            onPress={handleCreateOrder}
             mode="contained"
+            onPress={handleCreateOrder}
             icon="clipboard-plus"
-            style={styles.actionButton}
+            fullWidth
           >
-            New Order
+            Create New Order
           </Button>
           <Button
-            onPress={handleGenerateQR}
             mode="outlined"
+            onPress={handleGenerateQR}
             icon="qrcode"
-            style={styles.actionButton}
+            fullWidth
+            style={styles.outlinedButton}
           >
-            QR Code
+            Generate QR Code
           </Button>
         </View>
 
         {/* Service History */}
-        <Card style={styles.card}>
+        <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Service History</Text>
+            <Text style={styles.sectionLabel}>SERVICE HISTORY</Text>
             {recentOrders.length > 0 && (
-              <Text style={styles.seeAll} onPress={() => router.push(`/(main)/orders?vehicleId=${id}`)}>
+              <Text
+                style={styles.seeAllLink}
+                onPress={() => router.push(`/(main)/orders?vehicleId=${id}`)}
+              >
                 See All
               </Text>
             )}
           </View>
 
           {recentOrders.length > 0 ? (
-            recentOrders.map((order, index) => (
-              <View key={order.id}>
-                {index > 0 && <Divider style={styles.divider} />}
-                <View
-                  style={styles.orderItem}
-                  onTouchEnd={() => router.push(`/(main)/orders/${order.id}`)}
-                >
+            recentOrders.map((order) => (
+              <Card
+                key={order.id}
+                style={styles.orderCard}
+                onPress={() => router.push(`/(main)/orders/${order.id}`)}
+              >
+                <View style={styles.orderTop}>
+                  <View style={styles.orderIcon}>
+                    <Icon source="wrench" size={16} color={colors.primary} />
+                  </View>
                   <View style={styles.orderInfo}>
                     <Text style={styles.orderDescription}>
                       {order.description || 'Service Order'}
@@ -195,14 +241,18 @@ export default function VehicleDetailScreen() {
                   </View>
                   <StatusBadge status={order.status} />
                 </View>
-              </View>
+              </Card>
             ))
           ) : (
-            <Text style={styles.emptyText}>No service history yet</Text>
+            <Card style={styles.emptyCard}>
+              <Icon source="clipboard-text-off-outline" size={32} color={colors.textDisabled} />
+              <Text style={styles.emptyText}>No service history</Text>
+              <Text style={styles.emptySubtext}>Create an order to get started</Text>
+            </Card>
           )}
-        </Card>
+        </View>
       </ScrollView>
-    </>
+    </View>
   );
 }
 
@@ -210,7 +260,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    padding: 16,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 100,
   },
   loadingContainer: {
     flex: 1,
@@ -223,118 +278,97 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: 14,
   },
-  card: {
-    marginBottom: 16,
+  menuContent: {
+    backgroundColor: colors.surfaceElevated,
   },
-  vehicleHeader: {
+  heroGradient: {
+    padding: 20,
+    paddingTop: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+  vehicleTop: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 14,
     marginBottom: 16,
   },
-  vehicleIconContainer: {
+  avatar: {
     width: 64,
     height: 64,
-    borderRadius: 32,
-    backgroundColor: `${colors.primary}15`,
-    justifyContent: 'center',
+    borderRadius: 20,
+    backgroundColor: colors.primaryDim,
+    borderWidth: 1.5,
+    borderColor: colors.primaryBorder,
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarEmoji: {
+    fontSize: 28,
   },
   vehicleInfo: {
     flex: 1,
-    marginLeft: 16,
   },
   vehicleName: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 22,
+    fontWeight: '800',
     color: colors.textPrimary,
+    letterSpacing: -0.5,
   },
   licensePlate: {
-    fontSize: 16,
-    color: colors.primary,
+    fontSize: 15,
     fontWeight: '600',
-    marginTop: 4,
+    color: colors.primary,
+    marginTop: 3,
   },
   colorBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 6,
+  },
+  colorDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: colors.borderMedium,
   },
   colorText: {
     fontSize: 12,
-    color: colors.textOnPrimary,
-    fontWeight: '500',
-  },
-  detailsGrid: {
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
-  detailItem: {
-    flex: 1,
-  },
-  detailLabel: {
-    fontSize: 12,
     color: colors.textSecondary,
-    marginBottom: 4,
   },
-  detailValue: {
-    fontSize: 14,
-    color: colors.textPrimary,
-    fontWeight: '500',
+  statsRow: {
+    flexDirection: 'row',
+    gap: 8,
   },
-  notesSection: {
-    backgroundColor: colors.surfaceVariant,
+  statCard: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    borderRadius: 13,
     padding: 12,
-    borderRadius: 8,
-  },
-  notesLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginBottom: 4,
-  },
-  notesText: {
-    fontSize: 14,
-    color: colors.textPrimary,
-    lineHeight: 20,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textPrimary,
-    marginBottom: 12,
-  },
-  ownerInfo: {
-    flexDirection: 'row',
     alignItems: 'center',
   },
-  ownerIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.surfaceVariant,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  ownerDetails: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  ownerName: {
-    fontSize: 16,
-    fontWeight: '600',
+  statValue: {
+    fontSize: 18,
+    fontWeight: '500',
     color: colors.textPrimary,
+    fontVariant: ['tabular-nums'],
   },
-  ownerContact: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginTop: 2,
+  statLabel: {
+    fontSize: 9,
+    color: colors.textDisabled,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginTop: 3,
   },
-  actionsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
-  },
-  actionButton: {
-    flex: 1,
+  section: {
+    padding: 16,
+    paddingTop: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -342,45 +376,128 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  seeAll: {
-    fontSize: 14,
+  sectionLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.textDisabled,
+    letterSpacing: 1.5,
+    marginBottom: 11,
+  },
+  seeAllLink: {
+    fontSize: 12,
+    fontWeight: '600',
     color: colors.primary,
-    fontWeight: '500',
+    marginBottom: 11,
   },
-  divider: {
-    marginVertical: 12,
-  },
-  orderItem: {
+  vinCard: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 10,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    borderRadius: 10,
+    padding: 12,
+  },
+  vinText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontVariant: ['tabular-nums'],
+    letterSpacing: 1,
+  },
+  notesCard: {
+    backgroundColor: colors.surface,
+  },
+  notesText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
+  ownerCard: {
+    backgroundColor: colors.surface,
+  },
+  ownerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  ownerAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: colors.primaryDim,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ownerInitials: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primaryLight,
+  },
+  ownerInfo: {
+    flex: 1,
+  },
+  ownerName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  ownerContact: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  actions: {
+    padding: 18,
+    gap: 8,
+  },
+  outlinedButton: {
+    marginTop: 0,
+  },
+  orderCard: {
+    marginBottom: 8,
+  },
+  orderTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  orderIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: colors.primaryDim,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   orderInfo: {
     flex: 1,
   },
   orderDescription: {
     fontSize: 14,
-    color: colors.textPrimary,
-    fontWeight: '500',
-  },
-  orderDate: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 4,
-  },
-  orderRight: {
-    alignItems: 'flex-end',
-  },
-  orderAmount: {
-    fontSize: 14,
     fontWeight: '600',
     color: colors.textPrimary,
-    marginBottom: 4,
+  },
+  orderDate: {
+    fontSize: 11,
+    color: colors.textDisabled,
+    marginTop: 2,
+  },
+  emptyCard: {
+    alignItems: 'center',
+    paddingVertical: 24,
   },
   emptyText: {
-    fontSize: 14,
+    fontSize: 15,
+    fontWeight: '600',
     color: colors.textSecondary,
-    textAlign: 'center',
-    paddingVertical: 16,
+    marginTop: 10,
+  },
+  emptySubtext: {
+    fontSize: 12,
+    color: colors.textDisabled,
+    marginTop: 4,
   },
 });

@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Modal, FlatList, TouchableOpacity } from 'react-native';
 import { Text, IconButton, Searchbar, ActivityIndicator } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Input, Card } from '@presentation/components/common';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Button, Input, Card, TopBar } from '@presentation/components/common';
 import { useCustomers } from '@presentation/viewmodels/useCustomers';
 import { useCreateVehicle } from '@presentation/viewmodels/useVehicles';
 import { colors } from '@theme/colors';
@@ -14,6 +14,7 @@ export default function NewVehicleScreen() {
   const { customerId: initialCustomerId } = useLocalSearchParams<{ customerId?: string }>();
   const [showCustomerPicker, setShowCustomerPicker] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const insets = useSafeAreaInsets();
 
   const { data: customers, isLoading: loadingCustomers } = useCustomers();
   const createVehicleMutation = useCreateVehicle();
@@ -112,129 +113,136 @@ export default function NewVehicleScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <View style={styles.container}>
+      <TopBar title="Add Vehicle" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
           keyboardShouldPersistTaps="handled"
         >
           {/* Customer Selection */}
-          <Text style={styles.sectionTitle}>Select Customer *</Text>
-          <Card
-            style={[styles.selectionCard, errors.customerId && styles.errorCard] as any}
-            onPress={() => setShowCustomerPicker(true)}
-          >
-            {selectedCustomer ? (
-              <View style={styles.selectedItem}>
-                <View style={styles.selectedIcon}>
-                  <IconButton icon="account" size={24} iconColor={colors.primary} />
+          <Text style={styles.sectionTitle}>SELECT CUSTOMER</Text>
+          <View style={[styles.sectionCard, errors.customerId && styles.errorCard]}>
+            <TouchableOpacity
+              style={styles.selectionTouchable}
+              onPress={() => setShowCustomerPicker(true)}
+              activeOpacity={0.7}
+            >
+              {selectedCustomer ? (
+                <View style={styles.selectedItem}>
+                  <View style={styles.selectedIcon}>
+                    <IconButton icon="account" size={24} iconColor={colors.primary} />
+                  </View>
+                  <View style={styles.selectedInfo}>
+                    <Text style={styles.selectedTitle}>{selectedCustomer.name}</Text>
+                    <Text style={styles.selectedSubtitle}>{selectedCustomer.phone || 'No phone'}</Text>
+                  </View>
+                  <IconButton
+                    icon="close"
+                    size={20}
+                    onPress={() => {
+                      updateField('customerId', '');
+                      setSelectedCustomer(null);
+                    }}
+                  />
                 </View>
-                <View style={styles.selectedInfo}>
-                  <Text style={styles.selectedTitle}>{selectedCustomer.name}</Text>
-                  <Text style={styles.selectedSubtitle}>{selectedCustomer.phone || 'No phone'}</Text>
+              ) : (
+                <View style={styles.placeholderItem}>
+                  <IconButton icon="account-search" size={32} iconColor={colors.textSecondary} />
+                  <Text style={styles.placeholderText}>Tap to select a customer</Text>
                 </View>
-                <IconButton
-                  icon="close"
-                  size={20}
-                  onPress={() => {
-                    updateField('customerId', '');
-                    setSelectedCustomer(null);
-                  }}
-                />
-              </View>
-            ) : (
-              <View style={styles.placeholderItem}>
-                <IconButton icon="account-search" size={32} iconColor={colors.textSecondary} />
-                <Text style={styles.placeholderText}>Tap to select a customer</Text>
-              </View>
-            )}
-          </Card>
+              )}
+            </TouchableOpacity>
+          </View>
           {errors.customerId && <Text style={styles.errorText}>{errors.customerId}</Text>}
 
           {/* Vehicle Information */}
-          <Text style={styles.sectionTitle}>Vehicle Information</Text>
+          <Text style={styles.sectionTitle}>VEHICLE INFORMATION</Text>
+          <View style={styles.sectionCard}>
+            <Input
+              label="Make *"
+              value={form.make}
+              onChangeText={(v) => updateField('make', v)}
+              placeholder="e.g., Maruti Suzuki"
+              error={errors.make}
+              autoCapitalize="words"
+            />
 
-          <Input
-            label="Make *"
-            value={form.make}
-            onChangeText={(v) => updateField('make', v)}
-            placeholder="e.g., Maruti Suzuki"
-            error={errors.make}
-            autoCapitalize="words"
-          />
+            <View style={styles.spacing} />
 
-          <View style={styles.spacing} />
+            <Input
+              label="Model *"
+              value={form.model}
+              onChangeText={(v) => updateField('model', v)}
+              placeholder="e.g., Swift"
+              error={errors.model}
+              autoCapitalize="words"
+            />
 
-          <Input
-            label="Model *"
-            value={form.model}
-            onChangeText={(v) => updateField('model', v)}
-            placeholder="e.g., Swift"
-            error={errors.model}
-            autoCapitalize="words"
-          />
-
-          <View style={styles.row}>
-            <View style={styles.halfField}>
-              <Input
-                label="Year"
-                value={form.year}
-                onChangeText={(v) => updateField('year', v)}
-                placeholder="e.g., 2020"
-                keyboardType="numeric"
-                maxLength={4}
-                error={errors.year}
-              />
+            <View style={styles.row}>
+              <View style={styles.halfField}>
+                <Input
+                  label="Year"
+                  value={form.year}
+                  onChangeText={(v) => updateField('year', v)}
+                  placeholder="e.g., 2020"
+                  keyboardType="numeric"
+                  maxLength={4}
+                  error={errors.year}
+                />
+              </View>
+              <View style={styles.halfField}>
+                <Input
+                  label="Color"
+                  value={form.color}
+                  onChangeText={(v) => updateField('color', v)}
+                  placeholder="e.g., Red"
+                  autoCapitalize="words"
+                />
+              </View>
             </View>
-            <View style={styles.halfField}>
-              <Input
-                label="Color"
-                value={form.color}
-                onChangeText={(v) => updateField('color', v)}
-                placeholder="e.g., Red"
-                autoCapitalize="words"
-              />
-            </View>
+
+            <Input
+              label="License Plate *"
+              value={form.licensePlate}
+              onChangeText={(v) => updateField('licensePlate', v.toUpperCase())}
+              placeholder="e.g., MH 12 AB 1234"
+              autoCapitalize="characters"
+              error={errors.licensePlate}
+            />
           </View>
 
-          <Input
-            label="License Plate *"
-            value={form.licensePlate}
-            onChangeText={(v) => updateField('licensePlate', v.toUpperCase())}
-            placeholder="e.g., MH 12 AB 1234"
-            autoCapitalize="characters"
-            error={errors.licensePlate}
-          />
+          {/* Additional Information */}
+          <Text style={styles.sectionTitle}>ADDITIONAL INFORMATION</Text>
+          <View style={styles.sectionCard}>
+            <Input
+              label="VIN (Optional)"
+              value={form.vin}
+              onChangeText={(v) => updateField('vin', v.toUpperCase())}
+              placeholder="17-character VIN"
+              autoCapitalize="characters"
+              maxLength={17}
+              error={errors.vin}
+            />
 
-          <View style={styles.spacing} />
+            <View style={styles.spacing} />
 
-          <Input
-            label="VIN (Optional)"
-            value={form.vin}
-            onChangeText={(v) => updateField('vin', v.toUpperCase())}
-            placeholder="17-character VIN"
-            autoCapitalize="characters"
-            maxLength={17}
-            error={errors.vin}
-          />
-
-          <View style={styles.spacing} />
-
-          <Input
-            label="Notes (Optional)"
-            value={form.notes}
-            onChangeText={(v) => updateField('notes', v)}
-            placeholder="Any special notes about this vehicle"
-            multiline
-            numberOfLines={3}
-          />
+            <Input
+              label="Notes (Optional)"
+              value={form.notes}
+              onChangeText={(v) => updateField('notes', v)}
+              placeholder="Any special notes about this vehicle"
+              multiline
+              numberOfLines={3}
+            />
+          </View>
         </ScrollView>
 
-        <View style={styles.footer}>
+        <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
           <Button
             onPress={() => router.back()}
             mode="outlined"
@@ -269,6 +277,9 @@ export default function NewVehicleScreen() {
             onChangeText={setSearchQuery}
             value={searchQuery}
             style={styles.modalSearchBar}
+            inputStyle={styles.modalSearchInput}
+            iconColor={colors.textSecondary}
+            placeholderTextColor={colors.textDisabled}
           />
 
           {loadingCustomers ? (
@@ -312,7 +323,7 @@ export default function NewVehicleScreen() {
           )}
         </SafeAreaView>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -329,32 +340,39 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 100,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textPrimary,
-    marginTop: 16,
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textDisabled,
+    letterSpacing: 1.5,
+    marginTop: 20,
     marginBottom: 12,
+    marginLeft: 4,
   },
-  selectionCard: {
-    padding: 0,
+  sectionCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    padding: 16,
+  },
+  selectionTouchable: {
+    margin: -16,
+    padding: 16,
   },
   errorCard: {
-    borderWidth: 1,
     borderColor: colors.error,
   },
   selectedItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 8,
   },
   selectedIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: `${colors.primary}15`,
+    backgroundColor: colors.primaryDim,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -375,7 +393,7 @@ const styles = StyleSheet.create({
   },
   placeholderItem: {
     alignItems: 'center',
-    paddingVertical: 24,
+    paddingVertical: 16,
   },
   placeholderText: {
     fontSize: 14,
@@ -405,7 +423,7 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.borderLight,
   },
   footerButton: {
     flex: 1,
@@ -422,7 +440,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.borderLight,
   },
   modalTitle: {
     fontSize: 18,
@@ -432,6 +450,11 @@ const styles = StyleSheet.create({
   modalSearchBar: {
     margin: 16,
     backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  modalSearchInput: {
+    color: colors.textPrimary,
   },
   loader: {
     marginTop: 40,
@@ -458,7 +481,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: `${colors.primary}15`,
+    backgroundColor: colors.primaryDim,
     justifyContent: 'center',
     alignItems: 'center',
   },
