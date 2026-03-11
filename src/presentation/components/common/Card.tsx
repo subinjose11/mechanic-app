@@ -1,8 +1,8 @@
-import React from 'react';
-import { StyleSheet, ViewStyle, Pressable } from 'react-native';
-import { Card as PaperCard } from 'react-native-paper';
-import { colors } from '@theme/colors';
-import { shadows } from '@theme/index';
+import React, { useRef } from 'react';
+import { StyleSheet, ViewStyle, Pressable, View, Animated, Platform } from 'react-native';
+import { BlurView } from 'expo-blur';
+import { glass } from '@theme/glass';
+import { animations } from '@theme/animations';
 
 interface CardProps {
   children: React.ReactNode;
@@ -11,6 +11,7 @@ interface CardProps {
   contentStyle?: ViewStyle;
   elevated?: boolean;
   disabled?: boolean;
+  blurEnabled?: boolean;
 }
 
 export function Card({
@@ -18,61 +19,123 @@ export function Card({
   onPress,
   style,
   contentStyle,
-  elevated = true,
+  elevated = false,
   disabled = false,
+  blurEnabled = true,
 }: CardProps) {
-  const CardWrapper = onPress ? Pressable : React.Fragment;
-  const wrapperProps = onPress
-    ? {
-        onPress,
-        disabled,
-        style: ({ pressed }: { pressed: boolean }) => [
-          styles.card,
-          elevated && shadows.sm,
-          pressed && styles.pressed,
-          disabled && styles.disabled,
-          style,
-        ],
-      }
-    : {};
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const glassConfig = elevated ? glass.elevated : glass.card;
+  const shouldBlur = blurEnabled && Platform.OS === 'ios';
+
+  const handlePressIn = () => {
+    Animated.timing(scaleAnim, {
+      toValue: animations.press.scale,
+      duration: animations.press.duration,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.timing(scaleAnim, {
+      toValue: 1,
+      duration: animations.press.duration,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const cardRadius = 'borderRadius' in glassConfig ? glassConfig.borderRadius : 20;
+
+  const innerContent = (
+    <View style={[styles.content, contentStyle]}>{children}</View>
+  );
+
+  const renderContent = () => {
+    if (shouldBlur) {
+      return (
+        <BlurView
+          intensity={glassConfig.blurIntensity}
+          tint={glassConfig.blurTint}
+          style={[
+            styles.blur,
+            {
+              borderWidth: glassConfig.borderWidth,
+              borderColor: glassConfig.borderColor,
+              borderRadius: cardRadius,
+            },
+          ]}
+        >
+          <View style={[styles.overlay, { backgroundColor: glassConfig.backgroundColor }]}>
+            {innerContent}
+          </View>
+        </BlurView>
+      );
+    }
+
+    return (
+      <View
+        style={[
+          styles.fallback,
+          {
+            backgroundColor: glassConfig.backgroundColor,
+            borderWidth: glassConfig.borderWidth,
+            borderColor: glassConfig.borderColor,
+            borderRadius: cardRadius,
+          },
+        ]}
+      >
+        {innerContent}
+      </View>
+    );
+  };
 
   if (onPress) {
     return (
-      <Pressable
-        onPress={onPress}
-        disabled={disabled}
-        style={({ pressed }) => [
+      <Animated.View
+        style={[
           styles.card,
-          elevated && shadows.sm,
-          pressed && styles.pressed,
-          disabled && styles.disabled,
+          { borderRadius: cardRadius },
+          { transform: [{ scale: scaleAnim }] },
           style,
         ]}
       >
-        <PaperCard.Content style={[styles.content, contentStyle]}>{children}</PaperCard.Content>
-      </Pressable>
+        <Pressable
+          onPress={onPress}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          disabled={disabled}
+          style={[styles.pressable, disabled && styles.disabled]}
+        >
+          {renderContent()}
+        </Pressable>
+      </Animated.View>
     );
   }
 
   return (
-    <PaperCard style={[styles.card, elevated && shadows.sm, style]}>
-      <PaperCard.Content style={[styles.content, contentStyle]}>{children}</PaperCard.Content>
-    </PaperCard>
+    <View style={[styles.card, { borderRadius: cardRadius }, style]}>
+      {renderContent()}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
     overflow: 'hidden',
   },
-  content: {
-    padding: 16,
+  pressable: {
+    flex: 1,
   },
-  pressed: {
-    opacity: 0.9,
-    transform: [{ scale: 0.99 }],
+  blur: {
+    overflow: 'hidden',
+  },
+  fallback: {
+    overflow: 'hidden',
+  },
+  overlay: {
+    flex: 1,
+  },
+  content: {
+    padding: 20,
   },
   disabled: {
     opacity: 0.5,
