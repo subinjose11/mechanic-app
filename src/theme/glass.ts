@@ -40,6 +40,15 @@ export const glass = {
     blurIntensity: 60,
     blurTint: 'dark' as const,
   },
+
+  // Tab bar level - navigation tab bar
+  tabBar: {
+    backgroundColor: 'rgba(8, 8, 12, 0.85)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+    blurIntensity: 50,
+    blurTint: 'dark' as const,
+  },
 } as const;
 
 // Style objects without blur (for use in StyleSheet)
@@ -69,6 +78,12 @@ export const glassStyles = {
     borderWidth: glass.modal.borderWidth,
     borderColor: glass.modal.borderColor,
     borderRadius: glass.modal.borderRadius,
+  } as ViewStyle,
+
+  tabBar: {
+    backgroundColor: glass.tabBar.backgroundColor,
+    borderWidth: glass.tabBar.borderWidth,
+    borderColor: glass.tabBar.borderColor,
   } as ViewStyle,
 } as const;
 
