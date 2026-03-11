@@ -2,9 +2,12 @@ import { useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { Text, FAB, SegmentedButtons, Icon } from 'react-native-paper';
 import { router } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Calendar, DateData } from 'react-native-calendars';
-import { Card, EmptyState, StatusBadge } from '@presentation/components/common';
+import { GlassCard, AnimatedListItem, EmptyState, StatusBadge } from '@presentation/components/common';
 import { colors } from '@theme/colors';
+import { shadows } from '@theme/shadows';
 import { formatDate, formatTime } from '@core/utils/formatDate';
 import { AppointmentStatus } from '@core/constants';
 
@@ -98,42 +101,53 @@ export default function AppointmentsScreen() {
     return marked;
   };
 
-  const renderAppointmentCard = ({ item }: { item: AppointmentItem }) => (
-    <Card style={styles.appointmentCard} onPress={() => {}}>
-      <View style={styles.appointmentHeader}>
-        <View style={styles.timeSlot}>
-          <Icon source="clock-outline" size={16} color={colors.primary} />
-          <Text style={styles.time}>{item.scheduledTime}</Text>
-          <Text style={styles.duration}>{item.durationMinutes} min</Text>
+  const renderAppointmentCard = ({ item, index }: { item: AppointmentItem; index: number }) => (
+    <AnimatedListItem index={index}>
+      <GlassCard style={styles.appointmentCard} onPress={() => {}}>
+        <View style={styles.appointmentHeader}>
+          <View style={styles.timeSlot}>
+            <Icon source="clock-outline" size={16} color={colors.primary} />
+            <Text style={styles.time}>{item.scheduledTime}</Text>
+            <Text style={styles.duration}>{item.durationMinutes} min</Text>
+          </View>
+          <StatusBadge status={item.status} type="appointment" />
         </View>
-        <StatusBadge status={item.status} type="appointment" />
-      </View>
 
-      <View style={styles.appointmentBody}>
-        <Text style={styles.serviceType}>{item.serviceType}</Text>
-        <View style={styles.vehicleRow}>
-          <Icon source="car" size={14} color={colors.textSecondary} />
-          <Text style={styles.vehicleText}>
-            {item.vehicleName} ({item.licensePlate})
-          </Text>
+        <View style={styles.appointmentBody}>
+          <Text style={styles.serviceType}>{item.serviceType}</Text>
+          <View style={styles.vehicleRow}>
+            <Icon source="car" size={14} color={colors.textSecondary} />
+            <Text style={styles.vehicleText}>
+              {item.vehicleName} ({item.licensePlate})
+            </Text>
+          </View>
+          <View style={styles.customerRow}>
+            <Icon source="account" size={14} color={colors.textSecondary} />
+            <Text style={styles.customerText}>{item.customerName}</Text>
+          </View>
         </View>
-        <View style={styles.customerRow}>
-          <Icon source="account" size={14} color={colors.textSecondary} />
-          <Text style={styles.customerText}>{item.customerName}</Text>
-        </View>
-      </View>
 
-      {viewMode === 'list' && (
-        <View style={styles.dateRow}>
-          <Icon source="calendar" size={14} color={colors.textSecondary} />
-          <Text style={styles.dateText}>{formatDate(item.scheduledDate)}</Text>
-        </View>
-      )}
-    </Card>
+        {viewMode === 'list' && (
+          <View style={styles.dateRow}>
+            <Icon source="calendar" size={14} color={colors.textSecondary} />
+            <Text style={styles.dateText}>{formatDate(item.scheduledDate)}</Text>
+          </View>
+        )}
+      </GlassCard>
+    </AnimatedListItem>
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header with gradient */}
+      <LinearGradient
+        colors={['#10102a', colors.background]}
+        style={styles.headerGradient}
+      >
+        <Text style={styles.headerTitle}>Appointments</Text>
+        <Text style={styles.headerSubtitle}>Manage your schedule</Text>
+      </LinearGradient>
+
       <View style={styles.toggleContainer}>
         <SegmentedButtons
           value={viewMode}
@@ -142,6 +156,7 @@ export default function AppointmentsScreen() {
             { value: 'list', label: 'List', icon: 'format-list-bulleted' },
             { value: 'calendar', label: 'Calendar', icon: 'calendar-month' },
           ]}
+          style={styles.segmentedButtons}
         />
       </View>
 
@@ -156,6 +171,8 @@ export default function AppointmentsScreen() {
             todayTextColor: colors.primary,
             arrowColor: colors.primary,
             monthTextColor: colors.textPrimary,
+            dayTextColor: colors.textPrimary,
+            textDisabledColor: colors.textDisabled,
             textDayFontWeight: '500',
             textMonthFontWeight: '600',
           }}
@@ -175,7 +192,12 @@ export default function AppointmentsScreen() {
         renderItem={renderAppointmentCard}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
         }
         ListEmptyComponent={
           <EmptyState
@@ -194,7 +216,7 @@ export default function AppointmentsScreen() {
         onPress={() => router.push('/(main)/appointments/new')}
         color={colors.textOnPrimary}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -203,14 +225,39 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  headerGradient: {
+    paddingHorizontal: 18,
+    paddingTop: 13,
+    paddingBottom: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  headerTitle: {
+    fontSize: 25,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    lineHeight: 30,
+    letterSpacing: -0.5,
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    color: colors.textDisabled,
+    marginTop: 5,
+    fontWeight: '500',
+  },
   toggleContainer: {
     padding: 16,
     paddingBottom: 8,
   },
+  segmentedButtons: {
+    backgroundColor: colors.surface,
+  },
   calendar: {
     marginHorizontal: 16,
-    borderRadius: 12,
-    elevation: 2,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    overflow: 'hidden',
   },
   selectedDateLabel: {
     fontSize: 14,
@@ -226,6 +273,10 @@ const styles = StyleSheet.create({
   },
   appointmentCard: {
     marginBottom: 12,
+    backgroundColor: colors.surface,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
   },
   appointmentHeader: {
     flexDirection: 'row',
@@ -292,6 +343,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 16,
     bottom: 16,
+    borderRadius: 16,
     backgroundColor: colors.primary,
+    ...shadows.glow,
   },
 });
