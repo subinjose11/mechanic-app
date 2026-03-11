@@ -3,29 +3,31 @@ import { TextStyle } from 'react-native';
 export const typography = {
   // Headings
   h1: {
-    fontSize: 32,
+    fontSize: 34,
     fontWeight: '700',
-    lineHeight: 40,
+    lineHeight: 42,
     letterSpacing: -0.5,
   } as TextStyle,
 
   h2: {
     fontSize: 28,
-    fontWeight: '700',
+    fontWeight: '600',
     lineHeight: 36,
-    letterSpacing: -0.25,
+    letterSpacing: -0.3,
   } as TextStyle,
 
   h3: {
     fontSize: 24,
     fontWeight: '600',
     lineHeight: 32,
+    letterSpacing: -0.2,
   } as TextStyle,
 
   h4: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '500',
     lineHeight: 28,
+    letterSpacing: -0.1,
   } as TextStyle,
 
   h5: {
@@ -42,21 +44,24 @@ export const typography = {
 
   // Body text
   bodyLarge: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '400',
-    lineHeight: 24,
+    lineHeight: 26,
+    letterSpacing: 0.15,
   } as TextStyle,
 
   bodyMedium: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '400',
-    lineHeight: 20,
+    lineHeight: 22,
+    letterSpacing: 0.1,
   } as TextStyle,
 
   bodySmall: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '400',
-    lineHeight: 16,
+    lineHeight: 18,
+    letterSpacing: 0.1,
   } as TextStyle,
 
   // Labels
@@ -83,11 +88,10 @@ export const typography = {
 
   // Button text
   button: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
-    lineHeight: 20,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
+    lineHeight: 22,
+    letterSpacing: 0.3,
   } as TextStyle,
 
   // Caption
