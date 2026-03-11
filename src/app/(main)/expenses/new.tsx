@@ -4,12 +4,19 @@ import { Text, Chip, IconButton } from 'react-native-paper';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, DateData } from 'react-native-calendars';
-import { Button, Input, Card } from '@presentation/components/common';
+import { Button, Input, Card, TopBar } from '@presentation/components/common';
 import { colors } from '@theme/colors';
 import { EXPENSE_CATEGORY_LABELS, ExpenseCategory } from '@core/constants';
 import { formatDate } from '@core/utils/formatDate';
 
 const categories: ExpenseCategory[] = ['rent', 'utilities', 'supplies', 'other'];
+
+const categoryColors: Record<ExpenseCategory, string> = {
+  rent: colors.expenseRent,
+  utilities: colors.expenseUtilities,
+  supplies: colors.expenseSupplies,
+  other: colors.expenseOther,
+};
 
 export default function NewExpenseScreen() {
   const [isLoading, setIsLoading] = useState(false);
@@ -51,71 +58,101 @@ export default function NewExpenseScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
+      <TopBar title="New Expense" />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-          <Text style={styles.sectionTitle}>Category</Text>
-          <View style={styles.chipContainer}>
-            {categories.map((cat) => (
-              <Chip
-                key={cat}
-                selected={form.category === cat}
-                onPress={() => updateField('category', cat)}
-                style={styles.chip}
-                showSelectedCheck
-              >
-                {EXPENSE_CATEGORY_LABELS[cat]}
-              </Chip>
-            ))}
-          </View>
-          {errors.category && <Text style={styles.errorText}>{errors.category}</Text>}
-
-          <Text style={styles.sectionTitle}>Amount</Text>
-          <Input
-            label="Amount *"
-            value={form.amount}
-            onChangeText={(v) => updateField('amount', v.replace(/[^0-9.]/g, ''))}
-            placeholder="Enter amount"
-            keyboardType="decimal-pad"
-            error={errors.amount}
-            left={<IconButton icon="currency-inr" size={20} />}
-          />
-
-          <Text style={styles.sectionTitle}>Date</Text>
-          <Card style={styles.dateCard} onPress={() => setShowCalendar(!showCalendar)}>
-            <View style={styles.dateRow}>
-              <IconButton icon="calendar" size={24} iconColor={colors.primary} />
-              <Text style={styles.dateText}>{formatDate(new Date(form.date))}</Text>
-              <IconButton icon={showCalendar ? 'chevron-up' : 'chevron-down'} size={20} />
+          {/* Category Section */}
+          <Card style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>Category</Text>
+            <View style={styles.chipContainer}>
+              {categories.map((cat) => (
+                <Chip
+                  key={cat}
+                  selected={form.category === cat}
+                  onPress={() => updateField('category', cat)}
+                  style={[
+                    styles.chip,
+                    form.category === cat && {
+                      backgroundColor: `${categoryColors[cat]}15`,
+                      borderColor: `${categoryColors[cat]}40`
+                    },
+                  ]}
+                  textStyle={[
+                    styles.chipText,
+                    form.category === cat && { color: categoryColors[cat], fontWeight: '600' },
+                  ]}
+                  showSelectedCheck={false}
+                >
+                  {EXPENSE_CATEGORY_LABELS[cat]}
+                </Chip>
+              ))}
             </View>
+            {errors.category && <Text style={styles.errorText}>{errors.category}</Text>}
           </Card>
-          {showCalendar && (
-            <Calendar
-              current={form.date}
-              onDayPress={(day: DateData) => {
-                updateField('date', day.dateString);
-                setShowCalendar(false);
-              }}
-              maxDate={new Date().toISOString().split('T')[0]}
-              markedDates={{ [form.date]: { selected: true, selectedColor: colors.primary } }}
-              theme={{
-                calendarBackground: colors.surface,
-                selectedDayBackgroundColor: colors.primary,
-                todayTextColor: colors.primary,
-                arrowColor: colors.primary,
-              }}
-              style={styles.calendar}
-            />
-          )}
 
-          <Text style={styles.sectionTitle}>Description (Optional)</Text>
-          <Input
-            label="Description"
-            value={form.description}
-            onChangeText={(v) => updateField('description', v)}
-            placeholder="What was this expense for?"
-            multiline
-            numberOfLines={3}
-          />
+          {/* Amount Section */}
+          <Card style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>Amount</Text>
+            <Input
+              label="Amount *"
+              value={form.amount}
+              onChangeText={(v) => updateField('amount', v.replace(/[^0-9.]/g, ''))}
+              placeholder="Enter amount"
+              keyboardType="decimal-pad"
+              error={errors.amount}
+              left={<IconButton icon="currency-inr" size={20} iconColor={colors.textSecondary} />}
+            />
+          </Card>
+
+          {/* Date Section */}
+          <Card style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>Date</Text>
+            <Card style={styles.dateCard} onPress={() => setShowCalendar(!showCalendar)}>
+              <View style={styles.dateRow}>
+                <View style={styles.dateIconContainer}>
+                  <IconButton icon="calendar" size={22} iconColor={colors.primary} />
+                </View>
+                <Text style={styles.dateText}>{formatDate(new Date(form.date))}</Text>
+                <IconButton icon={showCalendar ? 'chevron-up' : 'chevron-down'} size={20} iconColor={colors.textSecondary} />
+              </View>
+            </Card>
+            {showCalendar && (
+              <Calendar
+                current={form.date}
+                onDayPress={(day: DateData) => {
+                  updateField('date', day.dateString);
+                  setShowCalendar(false);
+                }}
+                maxDate={new Date().toISOString().split('T')[0]}
+                markedDates={{ [form.date]: { selected: true, selectedColor: colors.primary } }}
+                theme={{
+                  calendarBackground: colors.surfaceVariant,
+                  selectedDayBackgroundColor: colors.primary,
+                  selectedDayTextColor: colors.textOnPrimary,
+                  todayTextColor: colors.primary,
+                  dayTextColor: colors.textPrimary,
+                  textDisabledColor: colors.textDisabled,
+                  monthTextColor: colors.textPrimary,
+                  arrowColor: colors.primary,
+                  textSectionTitleColor: colors.textSecondary,
+                }}
+                style={styles.calendar}
+              />
+            )}
+          </Card>
+
+          {/* Description Section */}
+          <Card style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>Description (Optional)</Text>
+            <Input
+              label="Description"
+              value={form.description}
+              onChangeText={(v) => updateField('description', v)}
+              placeholder="What was this expense for?"
+              multiline
+              numberOfLines={3}
+            />
+          </Card>
         </ScrollView>
 
         <View style={styles.footer}>
@@ -128,18 +165,95 @@ export default function NewExpenseScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  keyboardView: { flex: 1 },
-  scrollView: { flex: 1 },
-  scrollContent: { padding: 16, paddingBottom: 100 },
-  sectionTitle: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginTop: 16, marginBottom: 12 },
-  chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { marginBottom: 4 },
-  errorText: { fontSize: 12, color: colors.error, marginTop: 4 },
-  dateCard: { padding: 0 },
-  dateRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4 },
-  dateText: { flex: 1, fontSize: 16, color: colors.textPrimary },
-  calendar: { borderRadius: 12, marginTop: 8, elevation: 2 },
-  footer: { flexDirection: 'row', gap: 12, padding: 16, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.border },
-  footerButton: { flex: 1 },
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 100,
+  },
+  sectionCard: {
+    marginBottom: 16,
+    padding: 16,
+    backgroundColor: colors.surface,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    marginBottom: 12,
+  },
+  chipContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  chip: {
+    marginBottom: 4,
+    backgroundColor: colors.surfaceVariant,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  chipText: {
+    color: colors.textSecondary,
+  },
+  errorText: {
+    fontSize: 12,
+    color: colors.error,
+    marginTop: 8,
+  },
+  dateCard: {
+    padding: 0,
+    backgroundColor: colors.surfaceVariant,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingRight: 4,
+  },
+  dateIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: colors.primaryDim,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  dateText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '500',
+    color: colors.textPrimary,
+  },
+  calendar: {
+    borderRadius: 12,
+    marginTop: 12,
+    overflow: 'hidden',
+  },
+  footer: {
+    flexDirection: 'row',
+    gap: 12,
+    padding: 16,
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderLight,
+  },
+  footerButton: {
+    flex: 1,
+  },
 });

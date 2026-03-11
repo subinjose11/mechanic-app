@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, Dimensions } from 'react-native';
 import { Text, Icon, SegmentedButtons, ActivityIndicator } from 'react-native-paper';
 import { LineChart, PieChart } from 'react-native-chart-kit';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card } from '@presentation/components/common';
 import { useDashboardAnalytics, useThisWeekAnalytics, useThisMonthAnalytics } from '@presentation/viewmodels/useAnalytics';
 import { useOrderStats } from '@presentation/viewmodels/useOrders';
@@ -12,6 +14,7 @@ import { formatCurrency, formatCurrencyCompact } from '@core/utils/formatCurrenc
 const screenWidth = Dimensions.get('window').width - 64;
 
 export default function AnalyticsScreen() {
+  const insets = useSafeAreaInsets();
   const [period, setPeriod] = useState('week');
 
   const { data: dashboardData, isLoading } = useDashboardAnalytics();
@@ -74,7 +77,7 @@ export default function AnalyticsScreen() {
   };
 
   const StatCard = ({ icon, label, value, trend, color }: any) => (
-    <Card style={styles.statCard}>
+    <View style={styles.statCard}>
       <View style={[styles.statIcon, { backgroundColor: `${color}15` }]}>
         <Icon source={icon} size={20} color={color} />
       </View>
@@ -86,7 +89,7 @@ export default function AnalyticsScreen() {
           <Text style={[styles.trendText, { color: trend > 0 ? colors.success : colors.error }]}>{Math.abs(trend)}%</Text>
         </View>
       )}
-    </Card>
+    </View>
   );
 
   if (isLoading) {
@@ -99,97 +102,219 @@ export default function AnalyticsScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Period Selector */}
-      <View style={styles.periodSelector}>
-        <SegmentedButtons
-          value={period}
-          onValueChange={setPeriod}
-          buttons={[
-            { value: 'week', label: 'Week' },
-            { value: 'month', label: 'Month' },
-            { value: 'year', label: 'Year' },
-          ]}
-        />
-      </View>
+    <View style={styles.container}>
+      {/* Header with Gradient */}
+      <LinearGradient
+        colors={['#12103a', colors.background]}
+        style={[styles.headerGradient, { paddingTop: insets.top }]}
+      >
+        <Text style={styles.headerTitle}>Analytics</Text>
+        <Text style={styles.headerSubtitle}>Track your business performance</Text>
+      </LinearGradient>
 
-      {/* Overview Stats */}
-      <View style={styles.statsRow}>
-        <StatCard icon="cash" label="Revenue" value={formatCurrencyCompact(stats.totalRevenue)} trend={12} color={colors.success} />
-        <StatCard icon="wallet" label="Expenses" value={formatCurrencyCompact(stats.totalExpenses)} trend={-5} color={colors.error} />
-      </View>
-      <View style={styles.statsRow}>
-        <StatCard icon="chart-line" label="Net Profit" value={formatCurrencyCompact(stats.netProfit)} trend={18} color={colors.primary} />
-        <StatCard icon="clipboard-check" label="Orders" value={stats.ordersCompleted.toString()} trend={8} color={colors.info} />
-      </View>
-
-      {/* Revenue Chart */}
-      <Card style={styles.chartCard}>
-        <Text style={styles.chartTitle}>Revenue Trend</Text>
-        <LineChart
-          data={revenueData}
-          width={screenWidth}
-          height={200}
-          chartConfig={chartConfig}
-          bezier
-          style={styles.chart}
-          formatYLabel={(value) => `${parseInt(value) / 1000}k`}
-        />
-      </Card>
-
-      {/* Revenue Breakdown */}
-      <Card style={styles.chartCard}>
-        <Text style={styles.chartTitle}>Revenue Breakdown</Text>
-        <PieChart
-          data={pieData}
-          width={screenWidth}
-          height={200}
-          chartConfig={chartConfig}
-          accessor="population"
-          backgroundColor="transparent"
-          paddingLeft="15"
-          absolute
-        />
-      </Card>
-
-      {/* Quick Stats */}
-      <Card style={styles.summaryCard}>
-        <Text style={styles.summaryTitle}>Quick Stats</Text>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Average Order Value</Text>
-          <Text style={styles.summaryValue}>{formatCurrency(stats.averageOrderValue)}</Text>
+      <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Period Selector */}
+        <View style={styles.periodSelector}>
+          <SegmentedButtons
+            value={period}
+            onValueChange={setPeriod}
+            buttons={[
+              { value: 'week', label: 'Week' },
+              { value: 'month', label: 'Month' },
+              { value: 'year', label: 'Year' },
+            ]}
+          />
         </View>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>New Customers</Text>
-          <Text style={styles.summaryValue}>{stats.newCustomers}</Text>
+
+        {/* Overview Stats */}
+        <View style={styles.statsRow}>
+          <StatCard icon="cash" label="Revenue" value={formatCurrencyCompact(stats.totalRevenue)} trend={12} color={colors.success} />
+          <StatCard icon="wallet" label="Expenses" value={formatCurrencyCompact(stats.totalExpenses)} trend={-5} color={colors.error} />
         </View>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Profit Margin</Text>
-          <Text style={[styles.summaryValue, { color: colors.success }]}>72%</Text>
+        <View style={styles.statsRow}>
+          <StatCard icon="chart-line" label="Net Profit" value={formatCurrencyCompact(stats.netProfit)} trend={18} color={colors.primary} />
+          <StatCard icon="clipboard-check" label="Orders" value={stats.ordersCompleted.toString()} trend={8} color={colors.info} />
         </View>
-      </Card>
-    </ScrollView>
+
+        {/* Revenue Chart */}
+        <View style={styles.chartCard}>
+          <Text style={styles.chartTitle}>Revenue Trend</Text>
+          <LineChart
+            data={revenueData}
+            width={screenWidth}
+            height={200}
+            chartConfig={chartConfig}
+            bezier
+            style={styles.chart}
+            formatYLabel={(value) => `${parseInt(value) / 1000}k`}
+          />
+        </View>
+
+        {/* Revenue Breakdown */}
+        <View style={styles.chartCard}>
+          <Text style={styles.chartTitle}>Revenue Breakdown</Text>
+          <PieChart
+            data={pieData}
+            width={screenWidth}
+            height={200}
+            chartConfig={chartConfig}
+            accessor="population"
+            backgroundColor="transparent"
+            paddingLeft="15"
+            absolute
+          />
+        </View>
+
+        {/* Quick Stats */}
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryTitle}>Quick Stats</Text>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Average Order Value</Text>
+            <Text style={styles.summaryValue}>{formatCurrency(stats.averageOrderValue)}</Text>
+          </View>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>New Customers</Text>
+            <Text style={styles.summaryValue}>{stats.newCustomers}</Text>
+          </View>
+          <View style={[styles.summaryRow, styles.summaryRowLast]}>
+            <Text style={styles.summaryLabel}>Profit Margin</Text>
+            <Text style={[styles.summaryValue, { color: colors.primary }]}>72%</Text>
+          </View>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background, padding: 16 },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
-  loadingText: { marginTop: 12, color: colors.textSecondary, fontSize: 14 },
-  periodSelector: { marginBottom: 16 },
-  statsRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
-  statCard: { flex: 1, alignItems: 'center', paddingVertical: 16 },
-  statIcon: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
-  statValue: { fontSize: 20, fontWeight: '700', color: colors.textPrimary },
-  statLabel: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
-  trendRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
-  trendText: { fontSize: 11, fontWeight: '500', marginLeft: 2 },
-  chartCard: { marginBottom: 16 },
-  chartTitle: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginBottom: 12 },
-  chart: { borderRadius: 12 },
-  summaryCard: { marginBottom: 32 },
-  summaryTitle: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginBottom: 12 },
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.borderLight },
-  summaryLabel: { fontSize: 14, color: colors.textSecondary },
-  summaryValue: { fontSize: 14, fontWeight: '600', color: colors.textPrimary },
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  headerGradient: {
+    paddingHorizontal: 16,
+    paddingBottom: 24,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginTop: 16,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
+  scrollContent: {
+    flex: 1,
+    padding: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+  },
+  loadingText: {
+    marginTop: 12,
+    color: colors.textSecondary,
+    fontSize: 14,
+  },
+  periodSelector: {
+    marginBottom: 16,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  statCard: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    backgroundColor: colors.surface,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  statIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: colors.textDisabled,
+    marginTop: 2,
+  },
+  trendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  trendText: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginLeft: 2,
+  },
+  chartCard: {
+    marginBottom: 16,
+    backgroundColor: colors.surface,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    padding: 16,
+  },
+  chartTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    marginBottom: 12,
+  },
+  chart: {
+    borderRadius: 12,
+  },
+  summaryCard: {
+    marginBottom: 32,
+    backgroundColor: colors.surface,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    padding: 16,
+  },
+  summaryTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    marginBottom: 12,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+  summaryRowLast: {
+    borderBottomWidth: 0,
+  },
+  summaryLabel: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  summaryValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
 });

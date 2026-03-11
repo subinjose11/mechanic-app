@@ -3,7 +3,8 @@ import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 're
 import { Text, IconButton, Snackbar } from 'react-native-paper';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Input, Card } from '@presentation/components/common';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Button, Input, Card, TopBar } from '@presentation/components/common';
 import { useAuth } from '@presentation/viewmodels/useAuth';
 import { colors } from '@theme/colors';
 import { isValidPhone } from '@core/utils/validators';
@@ -64,6 +65,7 @@ export default function ShopProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
+      <TopBar title="Shop Profile" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -73,9 +75,23 @@ export default function ShopProfileScreen() {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
+          {/* Gradient Hero Section */}
+          <LinearGradient
+            colors={['#12103a', colors.background]}
+            style={styles.heroGradient}
+          >
+            <View style={styles.heroContent}>
+              <View style={styles.shopIconContainer}>
+                <IconButton icon="store" size={32} iconColor={colors.textPrimary} />
+              </View>
+              <Text style={styles.heroTitle}>{form.shopName || 'Your Shop'}</Text>
+              <Text style={styles.heroSubtitle}>{user?.email}</Text>
+            </View>
+          </LinearGradient>
+
           {/* Personal Information */}
           <Text style={styles.sectionTitle}>Personal Information</Text>
-          <Card style={styles.card}>
+          <View style={styles.card}>
             <Input
               label="Full Name *"
               value={form.name}
@@ -97,14 +113,14 @@ export default function ShopProfileScreen() {
               maxLength={10}
               left={<IconButton icon="phone" size={20} />}
             />
-          </Card>
+          </View>
 
           {/* Shop Information */}
           <Text style={styles.sectionTitle}>Shop Information</Text>
           <Text style={styles.sectionSubtitle}>
             This information will appear on your invoices
           </Text>
-          <Card style={styles.card}>
+          <View style={styles.card}>
             <Input
               label="Shop Name *"
               value={form.shopName}
@@ -140,11 +156,11 @@ export default function ShopProfileScreen() {
               error={errors.shopAddress}
               left={<IconButton icon="map-marker" size={20} />}
             />
-          </Card>
+          </View>
 
           {/* Account Info */}
           <Text style={styles.sectionTitle}>Account</Text>
-          <Card style={styles.card}>
+          <View style={styles.card}>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Email</Text>
               <Text style={styles.infoValue}>{user?.email}</Text>
@@ -155,7 +171,7 @@ export default function ShopProfileScreen() {
                 {user?.createdAt.toLocaleDateString()}
               </Text>
             </View>
-          </Card>
+          </View>
 
           {error && (
             <View style={styles.errorContainer}>
@@ -209,8 +225,36 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
     paddingBottom: 100,
+  },
+  heroGradient: {
+    paddingTop: 24,
+    paddingBottom: 32,
+    paddingHorizontal: 16,
+  },
+  heroContent: {
+    alignItems: 'center',
+  },
+  shopIconContainer: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  heroTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: 4,
+  },
+  heroSubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
   },
   sectionTitle: {
     fontSize: 16,
@@ -218,14 +262,22 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     marginTop: 16,
     marginBottom: 4,
+    paddingHorizontal: 16,
   },
   sectionSubtitle: {
     fontSize: 13,
     color: colors.textSecondary,
     marginBottom: 12,
+    paddingHorizontal: 16,
   },
   card: {
     marginTop: 8,
+    marginHorizontal: 16,
+    backgroundColor: colors.surface,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    padding: 16,
   },
   spacing: {
     height: 16,
@@ -238,7 +290,7 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.textDisabled,
   },
   infoValue: {
     fontSize: 14,
@@ -250,6 +302,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     marginTop: 16,
+    marginHorizontal: 16,
   },
   errorText: {
     color: colors.error,
@@ -262,7 +315,7 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.borderLight,
   },
   footerButton: {
     flex: 1,
