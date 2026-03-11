@@ -1,7 +1,8 @@
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Text, Icon, Divider, Switch } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import { Text, Icon } from 'react-native-paper';
 import { router } from 'expo-router';
-import { Card } from '@presentation/components/common';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { GlassCard } from '@presentation/components/common';
 import { useAuth } from '@presentation/viewmodels/useAuth';
 import { colors } from '@theme/colors';
 import { env } from '@core/config/env';
@@ -17,6 +18,7 @@ interface SettingItem {
 
 export default function SettingsScreen() {
   const { user, logout } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const handleLogout = () => {
     Alert.alert(
@@ -123,59 +125,80 @@ export default function SettingsScreen() {
   ];
 
   const renderSettingItem = (item: SettingItem, index: number, isLast: boolean) => (
-    <View key={index}>
-      <View
-        style={styles.settingItem}
-        onTouchEnd={item.onPress}
-      >
-        <View style={[styles.iconContainer, item.danger && styles.dangerIcon]}>
-          <Icon
-            source={item.icon}
-            size={22}
-            color={item.danger ? colors.error : colors.textSecondary}
-          />
-        </View>
-        <View style={styles.settingContent}>
-          <Text style={[styles.settingLabel, item.danger && styles.dangerText]}>
-            {item.label}
-          </Text>
-          {item.description && (
-            <Text style={styles.settingDescription}>{item.description}</Text>
-          )}
-        </View>
-        {item.rightElement || (
-          <Icon source="chevron-right" size={20} color={colors.textDisabled} />
+    <TouchableOpacity
+      key={index}
+      style={[
+        styles.settingItem,
+        !isLast && styles.settingItemBorder,
+      ]}
+      onPress={item.onPress}
+      activeOpacity={0.7}
+    >
+      <View style={[
+        styles.iconContainer,
+        item.danger ? styles.dangerIconContainer : styles.defaultIconContainer,
+      ]}>
+        <Icon
+          source={item.icon}
+          size={20}
+          color={item.danger ? colors.error : colors.primaryLight}
+        />
+      </View>
+      <View style={styles.settingContent}>
+        <Text style={[styles.settingLabel, item.danger && styles.dangerText]}>
+          {item.label}
+        </Text>
+        {item.description && (
+          <Text style={styles.settingDescription}>{item.description}</Text>
         )}
       </View>
-      {!isLast && <Divider style={styles.divider} />}
-    </View>
+      {item.rightElement || (
+        <Icon source="chevron-right" size={20} color={colors.textDisabled} />
+      )}
+    </TouchableOpacity>
   );
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[
+        styles.contentContainer,
+        { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 },
+      ]}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Settings</Text>
+      </View>
+
       {/* User Profile Card */}
-      <Card style={styles.profileCard} onPress={() => router.push('/(main)/settings/shop-profile')}>
+      <GlassCard
+        style={styles.profileCard}
+        onPress={() => router.push('/(main)/settings/shop-profile')}
+        glow
+      >
         <View style={styles.profileContent}>
           <View style={styles.avatar}>
-            <Icon source="account" size={32} color={colors.primary} />
+            <Icon source="account" size={28} color={colors.primaryLight} />
           </View>
           <View style={styles.profileInfo}>
             <Text style={styles.userName}>{user?.name || 'User'}</Text>
             <Text style={styles.userEmail}>{user?.email}</Text>
           </View>
-          <Icon source="chevron-right" size={24} color={colors.textDisabled} />
+          <Icon source="chevron-right" size={22} color={colors.textDisabled} />
         </View>
-      </Card>
+      </GlassCard>
 
       {/* Settings Sections */}
       {settingSections.map((section, sectionIndex) => (
         <View key={sectionIndex} style={styles.section}>
           <Text style={styles.sectionTitle}>{section.title}</Text>
-          <Card style={styles.sectionCard}>
+          <GlassCard style={styles.sectionCard} contentStyle={styles.sectionCardContent}>
             {section.items.map((item, index) =>
               renderSettingItem(item, index, index === section.items.length - 1)
             )}
-          </Card>
+          </GlassCard>
         </View>
       ))}
 
@@ -194,8 +217,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  contentContainer: {
+    paddingHorizontal: 16,
+  },
+  header: {
+    marginBottom: 24,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: colors.textPrimary,
+  },
   profileCard: {
-    margin: 16,
     marginBottom: 8,
   },
   profileContent: {
@@ -203,29 +236,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: `${colors.primary}15`,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: colors.primaryDim,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
     justifyContent: 'center',
     alignItems: 'center',
   },
   profileInfo: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 14,
   },
   userName: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '600',
     color: colors.textPrimary,
   },
   userEmail: {
     fontSize: 14,
     color: colors.textSecondary,
-    marginTop: 2,
+    marginTop: 3,
   },
   section: {
-    marginTop: 16,
+    marginTop: 20,
   },
   sectionTitle: {
     fontSize: 13,
@@ -233,34 +268,49 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginLeft: 16,
-    marginBottom: 8,
+    marginLeft: 4,
+    marginBottom: 10,
   },
   sectionCard: {
-    marginHorizontal: 16,
+    overflow: 'hidden',
+  },
+  sectionCardContent: {
+    padding: 0,
   },
   settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+  },
+  settingItemBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
   },
   iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.surfaceVariant,
+    width: 38,
+    height: 38,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  dangerIcon: {
-    backgroundColor: `${colors.error}15`,
+  defaultIconContainer: {
+    backgroundColor: colors.primaryDim,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
+  },
+  dangerIconContainer: {
+    backgroundColor: colors.errorDim,
+    borderWidth: 1,
+    borderColor: colors.errorBorder,
   },
   settingContent: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 14,
   },
   settingLabel: {
     fontSize: 16,
+    fontWeight: '500',
     color: colors.textPrimary,
   },
   dangerText: {
@@ -271,12 +321,10 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 2,
   },
-  divider: {
-    marginLeft: 52,
-  },
   footer: {
     alignItems: 'center',
     paddingVertical: 32,
+    paddingTop: 40,
   },
   footerText: {
     fontSize: 12,
