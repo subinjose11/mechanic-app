@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 're
 import { Text, SegmentedButtons, Chip } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Input, Card } from '@presentation/components/common';
+import { Button, Input, Card, TopBar } from '@presentation/components/common';
 import { useCreatePayment } from '@presentation/viewmodels/usePayments';
 import { useOrderWithDetails } from '@presentation/viewmodels/useOrders';
 import { colors } from '@theme/colors';
@@ -76,6 +76,7 @@ export default function RecordPaymentScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
+      <TopBar title="Payment" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -86,7 +87,7 @@ export default function RecordPaymentScreen() {
           keyboardShouldPersistTaps="handled"
         >
           {/* Balance Summary */}
-          <Card style={styles.summaryCard}>
+          <View style={styles.sectionCard}>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Total Amount</Text>
               <Text style={styles.summaryValue}>{formatCurrency(totalAmount)}</Text>
@@ -103,7 +104,7 @@ export default function RecordPaymentScreen() {
                 {formatCurrency(balanceDue)}
               </Text>
             </View>
-          </Card>
+          </View>
 
           <Text style={styles.sectionTitle}>Payment Details</Text>
 
@@ -202,8 +203,12 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 100,
   },
-  summaryCard: {
-    backgroundColor: colors.surfaceVariant,
+  sectionCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    padding: 16,
     marginBottom: 16,
   },
   summaryRow: {
@@ -224,7 +229,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.borderLight,
   },
   balanceLabel: {
     fontSize: 16,
@@ -252,7 +257,7 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 14,
     fontWeight: '500',
-    color: colors.textPrimary,
+    color: colors.textDisabled,
     marginTop: 16,
     marginBottom: 8,
   },
@@ -276,7 +281,7 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.borderLight,
   },
   footerButton: {
     flex: 1,

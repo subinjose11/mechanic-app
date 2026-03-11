@@ -4,7 +4,7 @@ import { Text, Icon, IconButton, SegmentedButtons, ActivityIndicator } from 'rea
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
-import { Card, Button } from '@presentation/components/common';
+import { Card, Button, TopBar } from '@presentation/components/common';
 import { usePhotosByOrder, useUploadPhoto, useDeletePhoto } from '@presentation/viewmodels/usePhotos';
 import { colors } from '@theme/colors';
 import { PhotoType, PHOTO_TYPE_LABELS } from '@core/constants';
@@ -105,6 +105,8 @@ export default function PhotosScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
+      <TopBar title="Photos" />
+
       {/* Photo Type Selector */}
       <View style={styles.typeSelector}>
         <SegmentedButtons
@@ -282,7 +284,7 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.borderLight,
   },
   footerButton: {
     flex: 1,

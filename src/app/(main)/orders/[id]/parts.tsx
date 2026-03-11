@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 're
 import { Text, Divider, IconButton } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Input, Card } from '@presentation/components/common';
+import { Button, Input, Card, TopBar } from '@presentation/components/common';
 import { useAddSparePart, useSpareParts, useDeleteSparePart } from '@presentation/viewmodels/useOrders';
 import { colors } from '@theme/colors';
 import { formatCurrency } from '@core/utils/formatCurrency';
@@ -83,6 +83,7 @@ export default function AddSparePartScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
+      <TopBar title="Parts" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -94,7 +95,7 @@ export default function AddSparePartScreen() {
         >
           {/* Existing Spare Parts */}
           {(spareParts || []).length > 0 && (
-            <Card style={styles.listCard}>
+            <View style={styles.sectionCard}>
               <Text style={styles.listTitle}>Added Parts ({spareParts?.length})</Text>
               {(spareParts || []).map((item, index) => (
                 <View key={item.id}>
@@ -121,7 +122,7 @@ export default function AddSparePartScreen() {
                 <Text style={styles.totalLabel}>Total Parts</Text>
                 <Text style={styles.totalValue}>{formatCurrency(total)}</Text>
               </View>
-            </Card>
+            </View>
           )}
 
           {/* Add New Part Form */}
@@ -218,7 +219,12 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 100,
   },
-  listCard: {
+  sectionCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    padding: 16,
     marginBottom: 24,
   },
   listTitle: {
@@ -229,6 +235,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     marginVertical: 8,
+    backgroundColor: colors.borderLight,
   },
   listItem: {
     flexDirection: 'row',
@@ -259,7 +266,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.borderLight,
   },
   totalLabel: {
     fontSize: 16,
@@ -313,7 +320,7 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.borderLight,
   },
   doneButton: {
     width: '100%',

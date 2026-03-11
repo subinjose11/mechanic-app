@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Modal, FlatList } from 'react-native';
 import { Text, IconButton, Searchbar, ActivityIndicator } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Input, Card } from '@presentation/components/common';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Button, Input, Card, TopBar } from '@presentation/components/common';
 import { useVehicles, useVehicle } from '@presentation/viewmodels/useVehicles';
 import { useCreateOrder } from '@presentation/viewmodels/useOrders';
 import { colors } from '@theme/colors';
@@ -12,6 +12,7 @@ export default function NewOrderScreen() {
   const { vehicleId: initialVehicleId } = useLocalSearchParams<{ vehicleId?: string }>();
   const [showVehiclePicker, setShowVehiclePicker] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const insets = useSafeAreaInsets();
 
   const { data: vehicles, isLoading: loadingVehicles } = useVehicles();
   const createOrderMutation = useCreateOrder();
@@ -87,96 +88,104 @@ export default function NewOrderScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <View style={styles.container}>
+      <TopBar title="New Order" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
           keyboardShouldPersistTaps="handled"
         >
           {/* Vehicle Selection */}
-          <Text style={styles.sectionTitle}>Select Vehicle *</Text>
-          <Card
-            style={[styles.selectionCard, errors.vehicleId && styles.errorCard] as any}
-            onPress={() => setShowVehiclePicker(true)}
-          >
-            {selectedVehicle ? (
-              <View style={styles.selectedItem}>
-                <View style={styles.selectedIcon}>
-                  <IconButton icon="car" size={24} iconColor={colors.primary} />
+          <Text style={styles.sectionTitle}>SELECT VEHICLE</Text>
+          <View style={[styles.sectionCard, errors.vehicleId && styles.errorCard]}>
+            <TouchableOpacity
+              style={styles.selectionTouchable}
+              onPress={() => setShowVehiclePicker(true)}
+              activeOpacity={0.7}
+            >
+              {selectedVehicle ? (
+                <View style={styles.selectedItem}>
+                  <View style={styles.selectedIcon}>
+                    <IconButton icon="car" size={24} iconColor={colors.primary} />
+                  </View>
+                  <View style={styles.selectedInfo}>
+                    <Text style={styles.selectedTitle}>
+                      {selectedVehicle.make} {selectedVehicle.model} ({selectedVehicle.year})
+                    </Text>
+                    <Text style={styles.selectedSubtitle}>{selectedVehicle.licensePlate}</Text>
+                  </View>
+                  <IconButton
+                    icon="close"
+                    size={20}
+                    onPress={() => {
+                      updateField('vehicleId', '');
+                      setSelectedVehicle(null);
+                    }}
+                  />
                 </View>
-                <View style={styles.selectedInfo}>
-                  <Text style={styles.selectedTitle}>
-                    {selectedVehicle.make} {selectedVehicle.model} ({selectedVehicle.year})
-                  </Text>
-                  <Text style={styles.selectedSubtitle}>{selectedVehicle.licensePlate}</Text>
+              ) : (
+                <View style={styles.placeholderItem}>
+                  <IconButton icon="car-search" size={32} iconColor={colors.textSecondary} />
+                  <Text style={styles.placeholderText}>Tap to select a vehicle</Text>
                 </View>
-                <IconButton
-                  icon="close"
-                  size={20}
-                  onPress={() => {
-                    updateField('vehicleId', '');
-                    setSelectedVehicle(null);
-                  }}
-                />
-              </View>
-            ) : (
-              <View style={styles.placeholderItem}>
-                <IconButton icon="car-search" size={32} iconColor={colors.textSecondary} />
-                <Text style={styles.placeholderText}>Tap to select a vehicle</Text>
-              </View>
-            )}
-          </Card>
+              )}
+            </TouchableOpacity>
+          </View>
           {errors.vehicleId && <Text style={styles.errorText}>{errors.vehicleId}</Text>}
 
           {/* KM Reading */}
-          <Text style={styles.sectionTitle}>KM Reading</Text>
-          <Input
-            label="Odometer Reading (KM)"
-            value={form.kmReading}
-            onChangeText={(v) => updateField('kmReading', v.replace(/[^0-9]/g, ''))}
-            placeholder="Enter current KM reading"
-            keyboardType="numeric"
-            left={<IconButton icon="speedometer" size={20} iconColor={colors.textSecondary} />}
-          />
+          <Text style={styles.sectionTitle}>KM READING</Text>
+          <View style={styles.sectionCard}>
+            <Input
+              label="Odometer Reading (KM)"
+              value={form.kmReading}
+              onChangeText={(v) => updateField('kmReading', v.replace(/[^0-9]/g, ''))}
+              placeholder="Enter current KM reading"
+              keyboardType="numeric"
+              left={<IconButton icon="speedometer" size={20} iconColor={colors.textSecondary} />}
+            />
+          </View>
 
           {/* Description */}
-          <Text style={styles.sectionTitle}>Work Description</Text>
-          <Input
-            label="Service Details"
-            value={form.description}
-            onChangeText={(v) => updateField('description', v)}
-            placeholder="Describe the work to be done (e.g., Oil change, Brake repair, etc.)"
-            multiline
-            numberOfLines={4}
-          />
+          <Text style={styles.sectionTitle}>WORK DESCRIPTION</Text>
+          <View style={styles.sectionCard}>
+            <Input
+              label="Service Details"
+              value={form.description}
+              onChangeText={(v) => updateField('description', v)}
+              placeholder="Describe the work to be done (e.g., Oil change, Brake repair, etc.)"
+              multiline
+              numberOfLines={4}
+            />
 
-          {/* Notes */}
-          <View style={styles.spacing} />
-          <Input
-            label="Internal Notes (Optional)"
-            value={form.notes}
-            onChangeText={(v) => updateField('notes', v)}
-            placeholder="Any internal notes or reminders..."
-            multiline
-            numberOfLines={2}
-          />
+            <View style={styles.spacing} />
+
+            <Input
+              label="Internal Notes (Optional)"
+              value={form.notes}
+              onChangeText={(v) => updateField('notes', v)}
+              placeholder="Any internal notes or reminders..."
+              multiline
+              numberOfLines={2}
+            />
+          </View>
 
           {/* Info */}
-          <Card style={styles.infoCard}>
+          <View style={styles.infoCard}>
             <View style={styles.infoRow}>
               <IconButton icon="information" size={20} iconColor={colors.info} />
               <Text style={styles.infoText}>
                 After creating the order, you can add labor charges and spare parts from the order details page.
               </Text>
             </View>
-          </Card>
+          </View>
         </ScrollView>
 
-        <View style={styles.footer}>
+        <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
           <Button
             onPress={() => router.back()}
             mode="outlined"
@@ -211,6 +220,9 @@ export default function NewOrderScreen() {
             onChangeText={setSearchQuery}
             value={searchQuery}
             style={styles.modalSearchBar}
+            inputStyle={styles.modalSearchInput}
+            iconColor={colors.textSecondary}
+            placeholderTextColor={colors.textDisabled}
           />
 
           {loadingVehicles ? (
@@ -256,7 +268,7 @@ export default function NewOrderScreen() {
           )}
         </SafeAreaView>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -273,32 +285,39 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 100,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textPrimary,
-    marginTop: 16,
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textDisabled,
+    letterSpacing: 1.5,
+    marginTop: 20,
     marginBottom: 12,
+    marginLeft: 4,
   },
-  selectionCard: {
-    padding: 0,
+  sectionCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    padding: 16,
+  },
+  selectionTouchable: {
+    margin: -16,
+    padding: 16,
   },
   errorCard: {
-    borderWidth: 1,
     borderColor: colors.error,
   },
   selectedItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 8,
   },
   selectedIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: `${colors.primary}15`,
+    backgroundColor: colors.primaryDim,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -319,7 +338,7 @@ const styles = StyleSheet.create({
   },
   placeholderItem: {
     alignItems: 'center',
-    paddingVertical: 24,
+    paddingVertical: 16,
   },
   placeholderText: {
     fontSize: 14,
@@ -333,11 +352,15 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   spacing: {
-    height: 8,
+    height: 16,
   },
   infoCard: {
     marginTop: 24,
-    backgroundColor: `${colors.info}10`,
+    backgroundColor: colors.infoDim,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    padding: 16,
   },
   infoRow: {
     flexDirection: 'row',
@@ -355,7 +378,7 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.borderLight,
   },
   footerButton: {
     flex: 1,
@@ -372,7 +395,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.borderLight,
   },
   modalTitle: {
     fontSize: 18,
@@ -382,6 +405,11 @@ const styles = StyleSheet.create({
   modalSearchBar: {
     margin: 16,
     backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  modalSearchInput: {
+    color: colors.textPrimary,
   },
   loader: {
     marginTop: 40,
@@ -408,7 +436,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: `${colors.primary}15`,
+    backgroundColor: colors.primaryDim,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -423,9 +451,8 @@ const styles = StyleSheet.create({
   },
   vehiclePlate: {
     fontSize: 14,
-    color: colors.secondary,
+    color: colors.textSecondary,
     marginTop: 2,
-    fontWeight: '500',
   },
   separator: {
     height: 1,
