@@ -3,7 +3,8 @@ import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 're
 import { Text, IconButton } from 'react-native-paper';
 import { Link, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Input } from '@presentation/components/common';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Button, Input, GlassCard } from '@presentation/components/common';
 import { useAuth } from '@presentation/viewmodels/useAuth';
 import { colors } from '@theme/colors';
 import { isValidEmail } from '@core/utils/validators';
@@ -47,77 +48,105 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
+    <View style={styles.container}>
+      {/* Background gradient */}
+      <LinearGradient
+        colors={['#12103a', '#08080c']}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 0.55 }}
+        style={StyleSheet.absoluteFill}
+      />
+
+      {/* Orb glow effect */}
+      <View style={styles.orb} />
+
+      <SafeAreaView style={styles.safeArea}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardView}
         >
-          <View style={styles.header}>
-            <Text style={styles.title}>Mechanic Shop</Text>
-            <Text style={styles.subtitle}>Sign in to manage your shop</Text>
-          </View>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Logo */}
+            <View style={styles.logoContainer}>
+              <LinearGradient
+                colors={[colors.primary, colors.primaryDark]}
+                style={styles.logo}
+              >
+                <Text style={styles.logoIcon}>🔧</Text>
+              </LinearGradient>
+            </View>
 
-          <View style={styles.form}>
-            <Input
-              label="Email"
-              value={email}
-              onChangeText={(text) => {
-                setEmail(text);
-                if (validationErrors.email) {
-                  setValidationErrors((prev) => ({ ...prev, email: undefined }));
+            {/* App name */}
+            <Text style={styles.appName}>
+              Mechanic<Text style={styles.appNameAccent}>Pro</Text>
+            </Text>
+            <Text style={styles.tagline}>WORKSHOP MANAGEMENT</Text>
+
+            {/* Login card */}
+            <GlassCard style={styles.card} level="elevated" glow>
+              <Text style={styles.cardTitle}>Welcome back</Text>
+              <Text style={styles.cardSubtitle}>Sign in to your account</Text>
+
+              <Input
+                label="Email"
+                value={email}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  if (validationErrors.email) {
+                    setValidationErrors((prev) => ({ ...prev, email: undefined }));
+                  }
+                }}
+                placeholder="Enter your email"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                error={validationErrors.email}
+              />
+
+              <View style={styles.inputSpacing} />
+
+              <Input
+                label="Password"
+                value={password}
+                onChangeText={(text) => {
+                  setPassword(text);
+                  if (validationErrors.password) {
+                    setValidationErrors((prev) => ({ ...prev, password: undefined }));
+                  }
+                }}
+                placeholder="Enter your password"
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                error={validationErrors.password}
+                right={
+                  <IconButton
+                    icon={showPassword ? 'eye-off' : 'eye'}
+                    size={20}
+                    iconColor={colors.textDisabled}
+                    onPress={() => setShowPassword(!showPassword)}
+                  />
                 }
-              }}
-              placeholder="Enter your email"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              error={validationErrors.email}
-              left={<IconButton icon="email" size={20} />}
-            />
+              />
 
-            <View style={styles.inputSpacing} />
+              {error && (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>{error}</Text>
+                </View>
+              )}
 
-            <Input
-              label="Password"
-              value={password}
-              onChangeText={(text) => {
-                setPassword(text);
-                if (validationErrors.password) {
-                  setValidationErrors((prev) => ({ ...prev, password: undefined }));
-                }
-              }}
-              placeholder="Enter your password"
-              secureTextEntry={!showPassword}
-              autoCapitalize="none"
-              error={validationErrors.password}
-              left={<IconButton icon="lock" size={20} />}
-              right={
-                <IconButton
-                  icon={showPassword ? 'eye-off' : 'eye'}
-                  size={20}
-                  onPress={() => setShowPassword(!showPassword)}
-                />
-              }
-            />
-
-            {error && (
-              <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            )}
-
-            <Button
-              onPress={handleLogin}
-              loading={isLoading}
-              fullWidth
-              style={styles.button}
-            >
-              Sign In
-            </Button>
+              <Button
+                onPress={handleLogin}
+                loading={isLoading}
+                fullWidth
+                style={styles.button}
+              >
+                Sign In
+              </Button>
+            </GlassCard>
 
             <View style={styles.footer}>
               <Text style={styles.footerText}>Don't have an account? </Text>
@@ -125,10 +154,10 @@ export default function LoginScreen() {
                 <Text style={styles.link}>Sign Up</Text>
               </Link>
             </View>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </View>
   );
 }
 
@@ -137,60 +166,108 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  orb: {
+    position: 'absolute',
+    top: -80,
+    left: '50%',
+    marginLeft: -140,
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    backgroundColor: 'rgba(99,102,241,0.18)',
+  },
+  safeArea: {
+    flex: 1,
+  },
   keyboardView: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 24,
-  },
-  header: {
+    padding: 32,
     alignItems: 'center',
-    marginBottom: 48,
   },
-  title: {
+  logoContainer: {
+    marginBottom: 20,
+  },
+  logo: {
+    width: 76,
+    height: 76,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.4,
+    shadowRadius: 40,
+    elevation: 12,
+  },
+  logoIcon: {
     fontSize: 32,
-    fontWeight: '700',
+  },
+  appName: {
+    fontSize: 30,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    letterSpacing: -0.5,
+    textAlign: 'center',
+  },
+  appNameAccent: {
     color: colors.primary,
-    marginBottom: 8,
   },
-  subtitle: {
-    fontSize: 16,
-    color: colors.textSecondary,
+  tagline: {
+    fontSize: 12,
+    color: colors.textDisabled,
+    letterSpacing: 2.5,
+    marginTop: 8,
+    marginBottom: 36,
   },
-  form: {
+  card: {
     width: '100%',
   },
+  cardTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: 4,
+  },
+  cardSubtitle: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: 22,
+  },
   inputSpacing: {
-    height: 16,
+    height: 10,
   },
   errorContainer: {
-    backgroundColor: `${colors.error}10`,
+    backgroundColor: colors.errorDim,
+    borderWidth: 1,
+    borderColor: colors.errorBorder,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 11,
     marginTop: 16,
   },
   errorText: {
     color: colors.error,
-    fontSize: 14,
+    fontSize: 13,
     textAlign: 'center',
   },
   button: {
-    marginTop: 24,
+    marginTop: 6,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 24,
+    marginTop: 16,
   },
   footerText: {
-    color: colors.textSecondary,
-    fontSize: 14,
+    color: colors.textDisabled,
+    fontSize: 12,
   },
   link: {
     color: colors.primary,
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
   },
 });
