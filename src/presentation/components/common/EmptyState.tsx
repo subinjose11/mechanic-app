@@ -2,6 +2,7 @@ import React from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
 import { Text, Icon } from 'react-native-paper';
 import { colors } from '@theme/colors';
+import { spacing } from '@theme/index';
 import { Button } from './Button';
 
 interface EmptyStateProps {
@@ -23,7 +24,9 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <View style={[styles.container, style]}>
-      <Icon source={icon} size={64} color={colors.textDisabled} />
+      <View style={styles.iconContainer}>
+        <Icon source={icon} size={56} color={colors.textDisabled} />
+      </View>
       <Text style={styles.title}>{title}</Text>
       {description && <Text style={styles.description}>{description}</Text>}
       {actionLabel && onAction && (
@@ -40,24 +43,35 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 32,
+    padding: spacing.xl,
+  },
+  iconContainer: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.lg,
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
     color: colors.textPrimary,
-    marginTop: 16,
     textAlign: 'center',
+    letterSpacing: -0.2,
   },
   description: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.textSecondary,
-    marginTop: 8,
+    marginTop: spacing.sm,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 22,
   },
   button: {
-    marginTop: 24,
+    marginTop: spacing.lg,
   },
 });
 
