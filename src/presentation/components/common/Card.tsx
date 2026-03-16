@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
-import { StyleSheet, ViewStyle, Pressable, View, Animated, Platform } from 'react-native';
-import { BlurView } from 'expo-blur';
-import { glass } from '@theme/glass';
+import { StyleSheet, ViewStyle, Pressable, View, Animated } from 'react-native';
+import { colors } from '@theme/colors';
+import { shadows } from '@theme/shadows';
 import { animations } from '@theme/animations';
 
 interface CardProps {
@@ -21,11 +21,8 @@ export function Card({
   contentStyle,
   elevated = false,
   disabled = false,
-  blurEnabled = true,
 }: CardProps) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  const glassConfig = elevated ? glass.elevated : glass.card;
-  const shouldBlur = blurEnabled && Platform.OS === 'ios';
 
   const handlePressIn = () => {
     Animated.timing(scaleAnim, {
@@ -43,50 +40,12 @@ export function Card({
     }).start();
   };
 
-  const cardRadius = 'borderRadius' in glassConfig ? glassConfig.borderRadius : 20;
+  const cardRadius = elevated ? 14 : 12;
+  const cardShadow = elevated ? shadows.md : shadows.sm;
 
   const innerContent = (
     <View style={[styles.content, contentStyle]}>{children}</View>
   );
-
-  const renderContent = () => {
-    if (shouldBlur) {
-      return (
-        <BlurView
-          intensity={glassConfig.blurIntensity}
-          tint={glassConfig.blurTint}
-          style={[
-            styles.blur,
-            {
-              borderWidth: glassConfig.borderWidth,
-              borderColor: glassConfig.borderColor,
-              borderRadius: cardRadius,
-            },
-          ]}
-        >
-          <View style={[styles.overlay, { backgroundColor: glassConfig.backgroundColor }]}>
-            {innerContent}
-          </View>
-        </BlurView>
-      );
-    }
-
-    return (
-      <View
-        style={[
-          styles.fallback,
-          {
-            backgroundColor: glassConfig.backgroundColor,
-            borderWidth: glassConfig.borderWidth,
-            borderColor: glassConfig.borderColor,
-            borderRadius: cardRadius,
-          },
-        ]}
-      >
-        {innerContent}
-      </View>
-    );
-  };
 
   if (onPress) {
     return (
@@ -94,6 +53,7 @@ export function Card({
         style={[
           styles.card,
           { borderRadius: cardRadius },
+          cardShadow,
           { transform: [{ scale: scaleAnim }] },
           style,
         ]}
@@ -105,37 +65,29 @@ export function Card({
           disabled={disabled}
           style={[styles.pressable, disabled && styles.disabled]}
         >
-          {renderContent()}
+          {innerContent}
         </Pressable>
       </Animated.View>
     );
   }
 
   return (
-    <View style={[styles.card, { borderRadius: cardRadius }, style]}>
-      {renderContent()}
+    <View style={[styles.card, { borderRadius: cardRadius }, cardShadow, style]}>
+      {innerContent}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
+    backgroundColor: colors.surface,
     overflow: 'hidden',
   },
   pressable: {
     flex: 1,
   },
-  blur: {
-    overflow: 'hidden',
-  },
-  fallback: {
-    overflow: 'hidden',
-  },
-  overlay: {
-    flex: 1,
-  },
   content: {
-    padding: 20,
+    padding: 16,
   },
   disabled: {
     opacity: 0.5,

@@ -1,7 +1,6 @@
 import React, { useRef } from 'react';
-import { StyleSheet, ViewStyle, TextStyle, Pressable, Animated } from 'react-native';
+import { StyleSheet, ViewStyle, TextStyle, Pressable, Animated, View } from 'react-native';
 import { Text, ActivityIndicator } from 'react-native-paper';
-import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@theme/colors';
 import { shadows } from '@theme/shadows';
 import { animations } from '@theme/animations';
@@ -26,7 +25,6 @@ export function Button({
   mode = 'contained',
   loading = false,
   disabled = false,
-  icon,
   style,
   labelStyle,
   fullWidth = false,
@@ -36,7 +34,7 @@ export function Button({
 
   const handlePressIn = () => {
     Animated.timing(scaleAnim, {
-      toValue: 0.97,
+      toValue: 0.98,
       duration: animations.press.duration,
       useNativeDriver: true,
     }).start();
@@ -50,20 +48,7 @@ export function Button({
     }).start();
   };
 
-  const getButtonColors = () => {
-    switch (color) {
-      case 'secondary':
-        return [colors.secondary, colors.secondaryDark];
-      case 'error':
-        return [colors.error, '#dc2626'];
-      case 'success':
-        return [colors.success, '#059669'];
-      default:
-        return [colors.gradientStart, colors.gradientEnd];
-    }
-  };
-
-  const getSolidColor = () => {
+  const getButtonColor = () => {
     switch (color) {
       case 'secondary':
         return colors.secondary;
@@ -77,6 +62,7 @@ export function Button({
   };
 
   const isDisabled = disabled || loading;
+  const buttonColor = getButtonColor();
 
   if (mode === 'contained') {
     return (
@@ -93,25 +79,20 @@ export function Button({
           disabled={isDisabled}
           style={[
             styles.buttonBase,
-            shadows.glow,
+            styles.contained,
+            { backgroundColor: buttonColor },
+            shadows.sm,
             isDisabled && styles.disabled,
             style,
           ]}
         >
-          <LinearGradient
-            colors={getButtonColors() as [string, string]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.gradient}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color={colors.textOnPrimary} />
-            ) : (
-              <Text style={[styles.label, styles.labelContained, labelStyle]}>
-                {children}
-              </Text>
-            )}
-          </LinearGradient>
+          {loading ? (
+            <ActivityIndicator size="small" color={colors.textOnPrimary} />
+          ) : (
+            <Text style={[styles.label, styles.labelContained, labelStyle]}>
+              {children}
+            </Text>
+          )}
         </Pressable>
       </Animated.View>
     );
@@ -133,15 +114,15 @@ export function Button({
           style={[
             styles.buttonBase,
             styles.outlined,
-            { borderColor: getSolidColor() },
+            { borderColor: buttonColor },
             isDisabled && styles.disabled,
             style,
           ]}
         >
           {loading ? (
-            <ActivityIndicator size="small" color={getSolidColor()} />
+            <ActivityIndicator size="small" color={buttonColor} />
           ) : (
-            <Text style={[styles.label, { color: getSolidColor() }, labelStyle]}>
+            <Text style={[styles.label, { color: buttonColor }, labelStyle]}>
               {children}
             </Text>
           )}
@@ -164,9 +145,9 @@ export function Button({
       ]}
     >
       {loading ? (
-        <ActivityIndicator size="small" color={getSolidColor()} />
+        <ActivityIndicator size="small" color={buttonColor} />
       ) : (
-        <Text style={[styles.label, { color: getSolidColor() }, labelStyle]}>
+        <Text style={[styles.label, { color: buttonColor }, labelStyle]}>
           {children}
         </Text>
       )}
@@ -178,26 +159,23 @@ const styles = StyleSheet.create({
   buttonBase: {
     borderRadius: borderRadius.md,
     overflow: 'hidden',
-  },
-  gradient: {
-    paddingVertical: 16,
-    paddingHorizontal: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 52,
+    minHeight: 50,
+  },
+  contained: {
+    paddingVertical: 14,
+    paddingHorizontal: 24,
   },
   outlined: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: 'transparent',
     borderWidth: 1.5,
-    paddingVertical: 14,
-    paddingHorizontal: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 52,
+    paddingVertical: 13,
+    paddingHorizontal: 24,
   },
   textButton: {
     paddingVertical: 12,
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -205,9 +183,9 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   label: {
-    fontSize: 15,
+    fontSize: 17,
     fontWeight: '600',
-    letterSpacing: 0.3,
+    letterSpacing: -0.41,
   },
   labelContained: {
     color: colors.textOnPrimary,
@@ -216,7 +194,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   disabled: {
-    opacity: 0.35,
+    opacity: 0.4,
   },
 });
 

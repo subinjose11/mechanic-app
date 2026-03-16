@@ -1,167 +1,279 @@
-import { useState } from 'react';
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { Text, Divider, IconButton } from 'react-native-paper';
-import { router, useLocalSearchParams } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Input, Card, TopBar } from '@presentation/components/common';
-import { useAddLaborItem, useLaborItems, useDeleteLaborItem } from '@presentation/viewmodels/useOrders';
+import { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Pressable, TextInput, Animated } from 'react-native';
+import { Text, Icon } from 'react-native-paper';
+import { router, useLocalSearchParams, useNavigation } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { observer } from 'mobx-react-lite';
+import { Button, TopBar, GlassCard } from '@presentation/components/common';
+import { useOrderStore } from '@stores';
+import { useOrderController } from '@controllers';
 import { colors } from '@theme/colors';
 import { formatCurrency } from '@core/utils/formatCurrency';
-import { LaborItem } from '@domain/entities/LaborItem';
+import { LaborItem } from '@models';
 
-export default function AddLaborScreen() {
+// Common services with preset prices (can be customized)
+const QUICK_SERVICES = [
+  { label: 'Oil Change', price: 500 },
+  { label: 'Oil + Filter', price: 800 },
+  { label: 'Brake Service', price: 1500 },
+  { label: 'AC Service', price: 2000 },
+  { label: 'General Service', price: 2500 },
+  { label: 'Wheel Alignment', price: 600 },
+  { label: 'Wheel Balance', price: 400 },
+  { label: 'Battery Check', price: 200 },
+  { label: 'Clutch Repair', price: 3500 },
+  { label: 'Engine Tune-up', price: 1500 },
+];
+
+interface SwipeableItemProps {
+  item: LaborItem;
+  onDelete: () => void;
+}
+
+function SwipeableItem({ item, onDelete }: SwipeableItemProps) {
+  const [showDelete, setShowDelete] = useState(false);
+
+  return (
+    <Pressable
+      onLongPress={() => setShowDelete(true)}
+      onPress={() => showDelete && setShowDelete(false)}
+      style={styles.itemContainer}
+    >
+      <View style={styles.itemContent}>
+        <View style={styles.itemIcon}>
+          <Icon source="wrench" size={18} color={colors.primary} />
+        </View>
+        <View style={styles.itemInfo}>
+          <Text style={styles.itemName}>{item.description}</Text>
+        </View>
+        <Text style={styles.itemAmount}>{formatCurrency(item.total)}</Text>
+        {showDelete && (
+          <Pressable onPress={onDelete} style={styles.deleteButton}>
+            <Icon source="close-circle" size={22} color={colors.error} />
+          </Pressable>
+        )}
+      </View>
+    </Pressable>
+  );
+}
+
+const AddLaborScreen = observer(function AddLaborScreen() {
   const { id: orderId } = useLocalSearchParams<{ id: string }>();
-  const addLaborMutation = useAddLaborItem();
-  const deleteLaborMutation = useDeleteLaborItem();
-  const { data: laborItems, isLoading } = useLaborItems(orderId || '');
+  const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
+  const orderStore = useOrderStore();
+  const orderController = useOrderController();
+  const descriptionRef = useRef<TextInput>(null);
+  const amountRef = useRef<TextInput>(null);
 
-  const [form, setForm] = useState({
-    description: '',
-    amount: '',
-  });
+  const [description, setDescription] = useState('');
+  const [amount, setAmount] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showCustomForm, setShowCustomForm] = useState(false);
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  // Hide tab bar - need grandparent since: Tabs -> Stack -> Screen
+  useLayoutEffect(() => {
+    const tabNavigator = navigation.getParent()?.getParent();
+    tabNavigator?.setOptions({ tabBarStyle: { display: 'none' } });
+    return () => {
+      tabNavigator?.setOptions({ tabBarStyle: undefined });
+    };
+  }, [navigation]);
 
-  const updateField = (field: string, value: string) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: '' }));
+  useEffect(() => {
+    if (orderId) {
+      orderController.fetchWithDetails(orderId);
     }
-  };
+  }, [orderId]);
 
-  const validate = (): boolean => {
-    const newErrors: Record<string, string> = {};
+  const laborItems = orderStore.currentOrder?.laborItems || [];
+  const total = laborItems.reduce((sum, item) => sum + item.total, 0);
 
-    if (!form.description.trim()) {
-      newErrors.description = 'Description is required';
-    }
-    if (!form.amount || parseFloat(form.amount) <= 0) {
-      newErrors.amount = 'Amount must be greater than 0';
-    }
+  const handleQuickAdd = async (service: { label: string; price: number }) => {
+    if (!orderId || isSubmitting) return;
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleAdd = async () => {
-    if (!validate() || !orderId) return;
-
+    setIsSubmitting(true);
     try {
-      await addLaborMutation.mutateAsync({
-        serviceOrderId: orderId,
-        description: form.description.trim(),
-        hours: 1, // Fixed at 1 since we're using flat rate
-        ratePerHour: parseFloat(form.amount),
+      await orderController.addLaborItem(orderId, {
+        description: service.label,
+        hours: 1,
+        ratePerHour: service.price,
       });
-      // Clear form for next entry
-      setForm({ description: '', amount: '' });
     } catch (err) {
-      console.error('Failed to add labor item:', err);
+      console.error('Failed to add labor:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCustomAdd = async () => {
+    if (!orderId || !description.trim() || !amount) return;
+
+    const price = parseFloat(amount);
+    if (price <= 0) return;
+
+    setIsSubmitting(true);
+    try {
+      await orderController.addLaborItem(orderId, {
+        description: description.trim(),
+        hours: 1,
+        ratePerHour: price,
+      });
+      setDescription('');
+      setAmount('');
+      setShowCustomForm(false);
+    } catch (err) {
+      console.error('Failed to add labor:', err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (item: LaborItem) => {
     if (!orderId) return;
     try {
-      await deleteLaborMutation.mutateAsync({ id: item.id, orderId });
+      await orderController.deleteLaborItem(orderId, item.id);
     } catch (err) {
-      console.error('Failed to delete labor item:', err);
+      console.error('Failed to delete:', err);
     }
   };
 
-  const total = (laborItems || []).reduce((sum, item) => sum + item.total, 0);
-
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
-      <TopBar title="Labor" />
+    <View style={styles.container}>
+      <TopBar title="Add Labor" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          {/* Existing Labor Items */}
-          {(laborItems || []).length > 0 && (
-            <View style={styles.sectionCard}>
-              <Text style={styles.listTitle}>Added Labor ({laborItems?.length})</Text>
-              {(laborItems || []).map((item, index) => (
-                <View key={item.id}>
-                  {index > 0 && <Divider style={styles.divider} />}
-                  <View style={styles.listItem}>
-                    <View style={styles.listItemInfo}>
-                      <Text style={styles.listItemName}>{item.description}</Text>
-                    </View>
-                    <Text style={styles.listItemAmount}>{formatCurrency(item.total)}</Text>
-                    <IconButton
-                      icon="delete"
-                      size={20}
-                      iconColor={colors.error}
-                      onPress={() => handleDelete(item)}
-                    />
-                  </View>
-                </View>
-              ))}
-              <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Total Labor</Text>
-                <Text style={styles.totalValue}>{formatCurrency(total)}</Text>
-              </View>
+          {/* Quick Services */}
+          <Text style={styles.sectionLabel}>QUICK ADD</Text>
+          <View style={styles.quickGrid}>
+            {QUICK_SERVICES.map((service) => (
+              <Pressable
+                key={service.label}
+                style={({ pressed }) => [
+                  styles.quickChip,
+                  pressed && styles.quickChipPressed,
+                ]}
+                onPress={() => handleQuickAdd(service)}
+                disabled={isSubmitting}
+              >
+                <Text style={styles.quickLabel}>{service.label}</Text>
+                <Text style={styles.quickPrice}>{formatCurrency(service.price)}</Text>
+              </Pressable>
+            ))}
+          </View>
+
+          {/* Custom Labor */}
+          <Pressable
+            style={styles.customButton}
+            onPress={() => {
+              setShowCustomForm(!showCustomForm);
+              if (!showCustomForm) {
+                setTimeout(() => descriptionRef.current?.focus(), 100);
+              }
+            }}
+          >
+            <View style={styles.customButtonIcon}>
+              <Icon source={showCustomForm ? "chevron-up" : "plus"} size={20} color={colors.primary} />
             </View>
+            <Text style={styles.customButtonText}>Custom Labor</Text>
+          </Pressable>
+
+          {showCustomForm && (
+            <GlassCard style={styles.customForm}>
+              <View style={styles.inputRow}>
+                <TextInput
+                  ref={descriptionRef}
+                  style={styles.descInput}
+                  value={description}
+                  onChangeText={setDescription}
+                  placeholder="Service description"
+                  placeholderTextColor={colors.textTertiary}
+                  autoCapitalize="sentences"
+                  returnKeyType="next"
+                  onSubmitEditing={() => amountRef.current?.focus()}
+                />
+              </View>
+              <View style={styles.inputRow}>
+                <View style={styles.currencyPrefix}>
+                  <Text style={styles.currencyText}>₹</Text>
+                </View>
+                <TextInput
+                  ref={amountRef}
+                  style={styles.amountInput}
+                  value={amount}
+                  onChangeText={(v) => setAmount(v.replace(/[^0-9]/g, ''))}
+                  placeholder="Amount"
+                  placeholderTextColor={colors.textTertiary}
+                  keyboardType="number-pad"
+                  returnKeyType="done"
+                  onSubmitEditing={handleCustomAdd}
+                />
+                <Pressable
+                  style={[
+                    styles.addIconButton,
+                    (!description.trim() || !amount) && styles.addIconButtonDisabled
+                  ]}
+                  onPress={handleCustomAdd}
+                  disabled={!description.trim() || !amount || isSubmitting}
+                >
+                  <Icon source="plus" size={20} color={colors.textOnPrimary} />
+                </Pressable>
+              </View>
+            </GlassCard>
           )}
 
-          {/* Add New Labor Form */}
-          <Text style={styles.sectionTitle}>Add Labor</Text>
-
-          <Input
-            label="Description *"
-            value={form.description}
-            onChangeText={(v) => updateField('description', v)}
-            placeholder="e.g., General Service, AC Repair, Brake Work"
-            error={errors.description}
-            autoCapitalize="sentences"
-          />
-
-          <View style={styles.spacing} />
-
-          <Input
-            label="Amount (₹) *"
-            value={form.amount}
-            onChangeText={(v) => updateField('amount', v.replace(/[^0-9]/g, ''))}
-            placeholder="e.g., 500"
-            keyboardType="numeric"
-            error={errors.amount}
-          />
-
-          <Button
-            onPress={handleAdd}
-            loading={addLaborMutation.isPending}
-            style={styles.addButton}
-            icon="plus"
-          >
-            Add Labor
-          </Button>
+          {/* Added Items */}
+          {laborItems.length > 0 && (
+            <>
+              <Text style={[styles.sectionLabel, { marginTop: 24 }]}>
+                ADDED ({laborItems.length})
+              </Text>
+              <GlassCard style={styles.itemsCard}>
+                {laborItems.map((item, index) => (
+                  <View key={item.id}>
+                    {index > 0 && <View style={styles.itemDivider} />}
+                    <SwipeableItem item={item} onDelete={() => handleDelete(item)} />
+                  </View>
+                ))}
+              </GlassCard>
+              <Text style={styles.hintText}>Long press item to delete</Text>
+            </>
+          )}
         </ScrollView>
 
-        <View style={styles.footer}>
+        {/* Footer with Total */}
+        <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
+          <View style={styles.totalSection}>
+            <Text style={styles.totalLabel}>Labor Total</Text>
+            <Text style={styles.totalValue}>{formatCurrency(total)}</Text>
+          </View>
           <Button
-            onPress={() => router.back()}
             mode="contained"
+            onPress={() => router.back()}
             style={styles.doneButton}
           >
             Done
           </Button>
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
-}
+});
+
+export default AddLaborScreen;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.surfaceSecondary,
   },
   keyboardView: {
     flex: 1,
@@ -171,79 +283,188 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 100,
   },
-  sectionCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    padding: 16,
-    marginBottom: 24,
-  },
-  listTitle: {
-    fontSize: 14,
+  sectionLabel: {
+    fontSize: 13,
     fontWeight: '600',
     color: colors.textSecondary,
+    letterSpacing: 0.5,
     marginBottom: 12,
+    marginLeft: 4,
   },
-  divider: {
-    marginVertical: 8,
-    backgroundColor: colors.borderLight,
+  quickGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
   },
-  listItem: {
+  quickChip: {
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    minWidth: '30%',
+    flexGrow: 1,
+  },
+  quickChipPressed: {
+    backgroundColor: colors.primaryDim,
+    borderColor: colors.primary,
+  },
+  quickLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.textPrimary,
+    marginBottom: 2,
+  },
+  quickPrice: {
+    fontSize: 13,
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  customButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+  },
+  customButtonIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: colors.primaryDim,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  customButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: colors.primary,
+  },
+  customForm: {
+    marginTop: 8,
+    padding: 12,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  descInput: {
+    flex: 1,
+    height: 44,
+    backgroundColor: colors.surfaceSecondary,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    fontSize: 16,
+    color: colors.textPrimary,
+  },
+  currencyPrefix: {
+    height: 44,
+    paddingHorizontal: 14,
+    backgroundColor: colors.surfaceSecondary,
+    borderTopLeftRadius: 10,
+    borderBottomLeftRadius: 10,
+    justifyContent: 'center',
+  },
+  currencyText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  amountInput: {
+    flex: 1,
+    height: 44,
+    backgroundColor: colors.surfaceSecondary,
+    borderTopRightRadius: 10,
+    borderBottomRightRadius: 10,
+    paddingHorizontal: 8,
+    fontSize: 16,
+    color: colors.textPrimary,
+  },
+  addIconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 10,
+  },
+  addIconButtonDisabled: {
+    backgroundColor: colors.systemGray4,
+  },
+  itemsCard: {
+    padding: 0,
+    overflow: 'hidden',
+  },
+  itemContainer: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  itemContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  listItemInfo: {
+  itemIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: colors.primaryDim,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  itemInfo: {
     flex: 1,
+    marginLeft: 12,
   },
-  listItemName: {
+  itemName: {
     fontSize: 15,
-    color: colors.textPrimary,
     fontWeight: '500',
+    color: colors.textPrimary,
   },
-  listItemAmount: {
+  itemAmount: {
     fontSize: 15,
     fontWeight: '600',
     color: colors.primary,
-    marginRight: 4,
   },
-  totalRow: {
+  itemDivider: {
+    height: 1,
+    backgroundColor: colors.separator,
+    marginLeft: 62,
+  },
+  deleteButton: {
+    marginLeft: 12,
+    padding: 4,
+  },
+  hintText: {
+    fontSize: 12,
+    color: colors.textTertiary,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  footer: {
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: colors.separator,
+    padding: 16,
+  },
+  totalSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.borderLight,
+    alignItems: 'center',
+    marginBottom: 16,
   },
   totalLabel: {
     fontSize: 16,
-    fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textSecondary,
   },
   totalValue: {
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: '700',
     color: colors.primary,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textPrimary,
-    marginBottom: 16,
-  },
-  spacing: {
-    height: 16,
-  },
-  addButton: {
-    marginTop: 16,
-  },
-  footer: {
-    padding: 16,
-    backgroundColor: colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: colors.borderLight,
   },
   doneButton: {
     width: '100%',

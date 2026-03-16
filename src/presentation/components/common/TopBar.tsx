@@ -6,7 +6,6 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '@theme/colors';
 import { borderRadius } from '@theme/index';
-import { shadows } from '@theme/shadows';
 
 interface TopBarProps {
   title: string;
@@ -15,6 +14,7 @@ interface TopBarProps {
   rightAction?: React.ReactNode;
   style?: ViewStyle;
   transparent?: boolean;
+  largeTitle?: boolean;
 }
 
 export function TopBar({
@@ -24,6 +24,7 @@ export function TopBar({
   rightAction,
   style,
   transparent = false,
+  largeTitle = false,
 }: TopBarProps) {
   const insets = useSafeAreaInsets();
 
@@ -45,15 +46,18 @@ export function TopBar({
             pressed && styles.backButtonPressed,
           ]}
         >
-          <Icon source="chevron-left" size={22} color={colors.textPrimary} />
+          <Icon source="chevron-left" size={24} color={colors.primary} />
+          <Text style={styles.backText}>Back</Text>
         </Pressable>
       ) : (
         <View style={styles.placeholder} />
       )}
 
-      <Text style={styles.title} numberOfLines={1}>
-        {title}
-      </Text>
+      {!largeTitle && (
+        <Text style={styles.title} numberOfLines={1}>
+          {title}
+        </Text>
+      )}
 
       <View style={styles.rightContainer}>
         {rightAction || <View style={styles.placeholder} />}
@@ -67,11 +71,12 @@ export function TopBar({
         style={[
           styles.container,
           styles.transparent,
-          { paddingTop: insets.top + 13 },
+          { paddingTop: insets.top + 8 },
           style,
         ]}
       >
         {content}
+        {largeTitle && <Text style={styles.largeTitle}>{title}</Text>}
       </View>
     );
   }
@@ -79,16 +84,19 @@ export function TopBar({
   if (Platform.OS === 'ios') {
     return (
       <BlurView
-        intensity={40}
-        tint="dark"
+        intensity={80}
+        tint="light"
         style={[
           styles.container,
-          { paddingTop: insets.top + 13 },
-          shadows.sm,
+          styles.blurred,
+          { paddingTop: insets.top + 8 },
           style,
         ]}
       >
-        <View style={styles.overlay}>{content}</View>
+        <View style={styles.overlay}>
+          {content}
+          {largeTitle && <Text style={styles.largeTitle}>{title}</Text>}
+        </View>
       </BlurView>
     );
   }
@@ -98,12 +106,12 @@ export function TopBar({
       style={[
         styles.container,
         styles.fallback,
-        { paddingTop: insets.top + 13 },
-        shadows.sm,
+        { paddingTop: insets.top + 8 },
         style,
       ]}
     >
       {content}
+      {largeTitle && <Text style={styles.largeTitle}>{title}</Text>}
     </View>
   );
 }
@@ -111,7 +119,7 @@ export function TopBar({
 export function IconButton({
   icon,
   onPress,
-  color = colors.textPrimary,
+  color = colors.primary,
 }: {
   icon: string;
   onPress: () => void;
@@ -125,21 +133,27 @@ export function IconButton({
         pressed && styles.iconButtonPressed,
       ]}
     >
-      <Icon source={icon} size={18} color={color} />
+      <Icon source={icon} size={22} color={color} />
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    paddingBottom: 13,
-    paddingHorizontal: 18,
+    paddingBottom: 10,
+    paddingHorizontal: 16,
+  },
+  blurred: {
+    borderBottomWidth: 0.5,
+    borderBottomColor: colors.separator,
   },
   overlay: {
-    backgroundColor: 'rgba(10,10,15,0.7)',
+    backgroundColor: 'rgba(249,249,249,0.8)',
   },
   fallback: {
-    backgroundColor: 'rgba(10,10,15,0.95)',
+    backgroundColor: colors.surfaceSecondary,
+    borderBottomWidth: 0.5,
+    borderBottomColor: colors.separator,
   },
   transparent: {
     backgroundColor: 'transparent',
@@ -147,50 +161,52 @@ const styles = StyleSheet.create({
   content: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    minHeight: 44,
   },
   backButton: {
-    width: 38,
-    height: 38,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    borderRadius: borderRadius.sm,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    marginLeft: -8,
+    paddingVertical: 8,
+    paddingRight: 8,
   },
   backButtonPressed: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderColor: colors.borderMedium,
+    opacity: 0.6,
+  },
+  backText: {
+    fontSize: 17,
+    color: colors.primary,
+    marginLeft: -2,
   },
   placeholder: {
-    width: 38,
+    width: 60,
   },
   title: {
     flex: 1,
     fontSize: 17,
     fontWeight: '600',
     color: colors.textPrimary,
-    letterSpacing: -0.3,
     textAlign: 'center',
   },
+  largeTitle: {
+    fontSize: 34,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginTop: 8,
+    marginBottom: 8,
+  },
   rightContainer: {
-    minWidth: 38,
+    minWidth: 60,
     alignItems: 'flex-end',
   },
   iconButton: {
-    width: 38,
-    height: 38,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    borderRadius: borderRadius.sm,
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
   iconButtonPressed: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderColor: colors.borderMedium,
+    opacity: 0.6,
   },
 });
 

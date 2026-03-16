@@ -5,17 +5,15 @@ import {
   StyleSheet,
   ViewStyle,
   Animated,
-  Platform,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
-import { glass, GlassLevel } from '@theme/glass';
 import { shadows } from '@theme/shadows';
 import { animations } from '@theme/animations';
+import { colors } from '@theme/colors';
 
 interface GlassCardProps {
   children: React.ReactNode;
   onPress?: () => void;
-  level?: GlassLevel;
+  level?: 'base' | 'card' | 'elevated' | 'modal';
   style?: ViewStyle;
   contentStyle?: ViewStyle;
   disabled?: boolean;
@@ -30,12 +28,9 @@ export function GlassCard({
   style,
   contentStyle,
   disabled = false,
-  blurEnabled = true,
   glow = false,
 }: GlassCardProps) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  const glassConfig = glass[level];
-  const shouldBlur = blurEnabled && Platform.OS === 'ios';
 
   const handlePressIn = () => {
     Animated.timing(scaleAnim, {
@@ -53,49 +48,32 @@ export function GlassCard({
     }).start();
   };
 
+  const getLevelStyles = () => {
+    switch (level) {
+      case 'base':
+        return { borderRadius: 10 };
+      case 'elevated':
+        return { borderRadius: 14, ...shadows.md };
+      case 'modal':
+        return { borderRadius: 16, ...shadows.lg };
+      case 'card':
+      default:
+        return { borderRadius: 12, ...shadows.sm };
+    }
+  };
+
+  const levelStyles = getLevelStyles();
+
   const cardStyle = [
     styles.card,
-    {
-      borderRadius: 'borderRadius' in glassConfig ? glassConfig.borderRadius : 20,
-    },
+    levelStyles,
     glow && shadows.glowSubtle,
     style,
   ];
 
   const innerContent = (
-    <View style={[styles.content, contentStyle]}>{children}</View>
-  );
-
-  const glassContent = shouldBlur ? (
-    <BlurView
-      intensity={glassConfig.blurIntensity}
-      tint={glassConfig.blurTint}
-      style={[
-        styles.blur,
-        {
-          borderWidth: glassConfig.borderWidth,
-          borderColor: glassConfig.borderColor,
-          borderRadius: 'borderRadius' in glassConfig ? glassConfig.borderRadius : 20,
-        },
-      ]}
-    >
-      <View style={[styles.overlay, { backgroundColor: glassConfig.backgroundColor }]}>
-        {innerContent}
-      </View>
-    </BlurView>
-  ) : (
-    <View
-      style={[
-        styles.fallback,
-        {
-          backgroundColor: glassConfig.backgroundColor,
-          borderWidth: glassConfig.borderWidth,
-          borderColor: glassConfig.borderColor,
-          borderRadius: 'borderRadius' in glassConfig ? glassConfig.borderRadius : 20,
-        },
-      ]}
-    >
-      {innerContent}
+    <View style={[styles.content, contentStyle]}>
+      {children}
     </View>
   );
 
@@ -109,33 +87,25 @@ export function GlassCard({
           disabled={disabled}
           style={[styles.pressable, disabled && styles.disabled]}
         >
-          {glassContent}
+          {innerContent}
         </Pressable>
       </Animated.View>
     );
   }
 
-  return <View style={cardStyle}>{glassContent}</View>;
+  return <View style={cardStyle}>{innerContent}</View>;
 }
 
 const styles = StyleSheet.create({
   card: {
+    backgroundColor: colors.surface,
     overflow: 'hidden',
   },
   pressable: {
     flex: 1,
   },
-  blur: {
-    overflow: 'hidden',
-  },
-  fallback: {
-    overflow: 'hidden',
-  },
-  overlay: {
-    flex: 1,
-  },
   content: {
-    padding: 20,
+    padding: 16,
   },
   disabled: {
     opacity: 0.5,

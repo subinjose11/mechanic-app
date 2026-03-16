@@ -19,7 +19,7 @@ export function StatusBadge({ status, type = 'order', style, showIcon = true }: 
       const pulse = Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
-            toValue: 1.05,
+            toValue: 1.03,
             duration: 1000,
             useNativeDriver: true,
           }),
@@ -40,50 +40,43 @@ export function StatusBadge({ status, type = 'order', style, showIcon = true }: 
       case 'pending':
         return {
           bg: colors.warningDim,
-          border: colors.warningBorder,
-          text: colors.warning,
+          text: colors.systemOrange,
           icon: 'clock-outline',
         };
       case 'in_progress':
         return {
           bg: colors.primaryDim,
-          border: colors.primaryBorder,
-          text: colors.primaryLight,
+          text: colors.primary,
           icon: 'progress-wrench',
         };
       case 'completed':
         return {
           bg: colors.successDim,
-          border: colors.successBorder,
           text: colors.success,
           icon: 'check-circle-outline',
         };
       case 'cancelled':
         return {
-          bg: 'rgba(96,96,120,0.12)',
-          border: 'rgba(96,96,120,0.3)',
-          text: colors.textDisabled,
+          bg: 'rgba(142,142,147,0.12)',
+          text: colors.systemGray,
           icon: 'close-circle-outline',
         };
       case 'scheduled':
         return {
           bg: colors.primaryDim,
-          border: colors.primaryBorder,
-          text: colors.primaryLight,
+          text: colors.primary,
           icon: 'calendar-clock',
         };
       case 'confirmed':
         return {
-          bg: colors.secondaryDim,
-          border: 'rgba(34,211,238,0.3)',
-          text: colors.secondary,
+          bg: 'rgba(88,86,214,0.12)',
+          text: colors.systemIndigo,
           icon: 'calendar-check',
         };
       default:
         return {
-          bg: 'rgba(160,160,184,0.12)',
-          border: 'rgba(160,160,184,0.3)',
-          text: colors.textSecondary,
+          bg: 'rgba(142,142,147,0.12)',
+          text: colors.systemGray,
           icon: 'help-circle-outline',
         };
     }
@@ -104,7 +97,6 @@ export function StatusBadge({ status, type = 'order', style, showIcon = true }: 
         styles.badge,
         {
           backgroundColor: config.bg,
-          borderColor: config.border,
           transform: [{ scale: status === 'in_progress' ? pulseAnim : 1 }],
         },
         style,
@@ -122,18 +114,16 @@ const styles = StyleSheet.create({
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 4,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 9999,
-    borderWidth: 1,
+    borderRadius: 6,
     alignSelf: 'flex-start',
   },
   text: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
-    letterSpacing: 0.3,
-    textTransform: 'uppercase',
+    letterSpacing: 0.1,
   },
 });
 

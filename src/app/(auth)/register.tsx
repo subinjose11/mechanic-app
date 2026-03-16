@@ -1,16 +1,19 @@
 import { useState } from 'react';
 import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { Text, IconButton } from 'react-native-paper';
+import { Text } from 'react-native-paper';
 import { Link, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { observer } from 'mobx-react-lite';
 import { Button, Input, GlassCard } from '@presentation/components/common';
-import { useAuth } from '@presentation/viewmodels/useAuth';
+import { useAuthController } from '@views/hooks/useController';
+import { useAuthStore } from '@views/hooks/useStore';
 import { colors } from '@theme/colors';
 import { isValidEmail, isStrongPassword } from '@core/utils/validators';
 
-export default function RegisterScreen() {
-  const { register, isLoading, error, clearError } = useAuth();
+function RegisterScreen() {
+  const authController = useAuthController();
+  const authStore = useAuthStore();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -58,18 +61,14 @@ export default function RegisterScreen() {
   };
 
   const handleRegister = async () => {
-    clearError();
+    authController.clearError();
     if (!validate()) return;
 
     try {
-      await register({
-        name: name.trim(),
-        email: email.trim(),
-        password,
-      });
+      await authController.register(email.trim(), password, name.trim());
       router.replace('/(auth)/shop-setup');
     } catch (err) {
-      // Error is handled by the auth context
+      // Error is handled by the controller
     }
   };
 
@@ -93,7 +92,7 @@ export default function RegisterScreen() {
         >
           <ScrollView
             contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
+            keyboardShouldPersistTaps="always"
             showsVerticalScrollIndicator={false}
           >
             {/* Logo */}
@@ -164,14 +163,8 @@ export default function RegisterScreen() {
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
                 error={validationErrors.password}
-                right={
-                  <IconButton
-                    icon={showPassword ? 'eye-off' : 'eye'}
-                    size={20}
-                    iconColor={colors.textDisabled}
-                    onPress={() => setShowPassword(!showPassword)}
-                  />
-                }
+                rightIcon={showPassword ? 'eye-off' : 'eye'}
+                onRightIconPress={() => setShowPassword(!showPassword)}
               />
 
               <View style={styles.inputSpacing} />
@@ -191,15 +184,15 @@ export default function RegisterScreen() {
                 error={validationErrors.confirmPassword}
               />
 
-              {error && (
+              {authStore.error && (
                 <View style={styles.errorContainer}>
-                  <Text style={styles.errorText}>{error}</Text>
+                  <Text style={styles.errorText}>{authStore.error}</Text>
                 </View>
               )}
 
               <Button
                 onPress={handleRegister}
-                loading={isLoading}
+                loading={authStore.isLoading}
                 fullWidth
                 style={styles.button}
               >
@@ -219,6 +212,8 @@ export default function RegisterScreen() {
     </View>
   );
 }
+
+export default observer(RegisterScreen);
 
 const styles = StyleSheet.create({
   container: {

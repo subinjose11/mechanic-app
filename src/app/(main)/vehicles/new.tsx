@@ -1,23 +1,30 @@
 import { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Modal, FlatList, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Modal, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { Text, IconButton, Searchbar, ActivityIndicator } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { observer } from 'mobx-react-lite';
 import { Button, Input, Card, TopBar } from '@presentation/components/common';
-import { useCustomers } from '@presentation/viewmodels/useCustomers';
-import { useCreateVehicle } from '@presentation/viewmodels/useVehicles';
+import { useCustomerStore, useUIStore, useVehicleStore } from '@stores';
+import { useCustomerController, useVehicleController } from '@controllers';
 import { colors } from '@theme/colors';
 import { isValidLicensePlate, isValidVIN, isValidYear } from '@core/utils/validators';
-import { Customer } from '@domain/entities/Customer';
+import { Customer } from '@models';
 
-export default function NewVehicleScreen() {
-  const { customerId: initialCustomerId } = useLocalSearchParams<{ customerId?: string }>();
+const NewVehicleScreen = observer(function NewVehicleScreen() {
+  const { customerId: initialCustomerId, id: editId } = useLocalSearchParams<{ customerId?: string; id?: string }>();
+  const isEditMode = !!editId;
   const [showCustomerPicker, setShowCustomerPicker] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(isEditMode);
   const insets = useSafeAreaInsets();
 
-  const { data: customers, isLoading: loadingCustomers } = useCustomers();
-  const createVehicleMutation = useCreateVehicle();
+  const customerStore = useCustomerStore();
+  const vehicleStore = useVehicleStore();
+  const uiStore = useUIStore();
+  const customerController = useCustomerController();
+  const vehicleController = useVehicleController();
 
   const [form, setForm] = useState({
     customerId: initialCustomerId || '',
@@ -32,6 +39,45 @@ export default function NewVehicleScreen() {
 
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    customerController.fetchAll();
+    if (editId) {
+      loadVehicleData();
+    }
+  }, [editId]);
+
+  const loadVehicleData = async () => {
+    if (!editId) return;
+    try {
+      const vehicle = await vehicleController.fetchById(editId);
+      if (vehicle) {
+        setForm({
+          customerId: vehicle.customerId || '',
+          make: vehicle.make || '',
+          model: vehicle.model || '',
+          year: vehicle.year?.toString() || '',
+          licensePlate: vehicle.licensePlate || '',
+          vin: vehicle.vin || '',
+          color: vehicle.color || '',
+          notes: vehicle.notes || '',
+        });
+        // Load the customer
+        if (vehicle.customerId) {
+          const customer = customerStore.getById(vehicle.customerId);
+          setSelectedCustomer(customer || null);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load vehicle:', err);
+      Alert.alert('Error', 'Failed to load vehicle data');
+    } finally {
+      setIsInitializing(false);
+    }
+  };
+
+  const customers = customerStore.customers;
+  const loadingCustomers = uiStore.isLoading;
 
   // Load selected customer details
   useEffect(() => {
@@ -95,8 +141,9 @@ export default function NewVehicleScreen() {
   const handleSubmit = async () => {
     if (!validate()) return;
 
+    setIsSubmitting(true);
     try {
-      await createVehicleMutation.mutateAsync({
+      const vehicleData = {
         customerId: form.customerId,
         make: form.make,
         model: form.model,
@@ -105,23 +152,40 @@ export default function NewVehicleScreen() {
         vin: form.vin || undefined,
         color: form.color || undefined,
         notes: form.notes || undefined,
-      });
+      };
+
+      if (isEditMode && editId) {
+        await vehicleController.update(editId, vehicleData);
+      } else {
+        await vehicleController.create(vehicleData);
+      }
       router.back();
     } catch (err) {
-      console.error('Failed to create vehicle:', err);
+      console.error('Failed to save vehicle:', err);
+      Alert.alert('Error', `Failed to ${isEditMode ? 'update' : 'create'} vehicle`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
+  if (isInitializing) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <TopBar title="Add Vehicle" />
+      <TopBar title={isEditMode ? "Edit Vehicle" : "Add Vehicle"} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: 20 }]}
           keyboardShouldPersistTaps="handled"
         >
           {/* Customer Selection */}
@@ -242,7 +306,7 @@ export default function NewVehicleScreen() {
           </View>
         </ScrollView>
 
-        <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
+        <View style={[styles.footer, { paddingBottom: insets.bottom + 80 }]}>
           <Button
             onPress={() => router.back()}
             mode="outlined"
@@ -252,10 +316,10 @@ export default function NewVehicleScreen() {
           </Button>
           <Button
             onPress={handleSubmit}
-            loading={createVehicleMutation.isPending}
+            loading={isSubmitting}
             style={styles.footerButton}
           >
-            Add Vehicle
+            {isEditMode ? 'Save Changes' : 'Add Vehicle'}
           </Button>
         </View>
       </KeyboardAvoidingView>
@@ -325,11 +389,19 @@ export default function NewVehicleScreen() {
       </Modal>
     </View>
   );
-}
+});
+
+export default NewVehicleScreen;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: colors.background,
   },
   keyboardView: {

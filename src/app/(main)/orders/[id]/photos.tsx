@@ -1,25 +1,46 @@
-import { useState } from 'react';
+import { useState, useEffect, useLayoutEffect } from 'react';
 import { View, StyleSheet, ScrollView, Image, TouchableOpacity, Alert } from 'react-native';
 import { Text, Icon, IconButton, SegmentedButtons, ActivityIndicator } from 'react-native-paper';
-import { router, useLocalSearchParams } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { router, useLocalSearchParams, useNavigation } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
+import { observer } from 'mobx-react-lite';
 import { Card, Button, TopBar } from '@presentation/components/common';
-import { usePhotosByOrder, useUploadPhoto, useDeletePhoto } from '@presentation/viewmodels/usePhotos';
+import { useOrderStore, useUIStore } from '@stores';
+import { useOrderController } from '@controllers';
 import { colors } from '@theme/colors';
 import { PhotoType, PHOTO_TYPE_LABELS } from '@core/constants';
-import { Photo } from '@domain/entities/Photo';
+import { Photo } from '@models';
 
-export default function PhotosScreen() {
+const PhotosScreen = observer(function PhotosScreen() {
   const { id: orderId } = useLocalSearchParams<{ id: string }>();
+  const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
   const [selectedType, setSelectedType] = useState<PhotoType>('before');
   const [uploading, setUploading] = useState(false);
 
-  const { data: photos, isLoading } = usePhotosByOrder(orderId || '');
-  const uploadPhotoMutation = useUploadPhoto();
-  const deletePhotoMutation = useDeletePhoto();
+  const orderStore = useOrderStore();
+  const uiStore = useUIStore();
+  const orderController = useOrderController();
 
-  const filteredPhotos = (photos || []).filter((p) => p.photoType === selectedType);
+  // Hide tab bar - need grandparent since: Tabs -> Stack -> Screen
+  useLayoutEffect(() => {
+    const tabNavigator = navigation.getParent()?.getParent();
+    tabNavigator?.setOptions({ tabBarStyle: { display: 'none' } });
+    return () => {
+      tabNavigator?.setOptions({ tabBarStyle: undefined });
+    };
+  }, [navigation]);
+
+  useEffect(() => {
+    if (orderId) {
+      orderController.fetchWithDetails(orderId);
+    }
+  }, [orderId]);
+
+  const photos = orderStore.currentOrder?.photos || [];
+  const isLoading = uiStore.isLoading;
+  const filteredPhotos = photos.filter((p) => p.photoType === selectedType);
 
   const pickImage = async (source: 'camera' | 'gallery') => {
     try {
@@ -52,11 +73,7 @@ export default function PhotosScreen() {
       if (!result.canceled && result.assets[0] && orderId) {
         setUploading(true);
         try {
-          await uploadPhotoMutation.mutateAsync({
-            serviceOrderId: orderId,
-            imageUri: result.assets[0].uri,
-            type: selectedType,
-          });
+          await orderController.addPhoto(orderId, selectedType, result.assets[0].uri);
         } catch (err) {
           console.error('Failed to upload photo:', err);
           Alert.alert('Upload Failed', 'Could not upload the photo. Please try again.');
@@ -80,7 +97,7 @@ export default function PhotosScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await deletePhotoMutation.mutateAsync({ id: photo.id, orderId: photo.serviceOrderId });
+              await orderController.deletePhoto(photo.serviceOrderId, photo.id);
             } catch (err) {
               console.error('Failed to delete photo:', err);
               Alert.alert('Error', 'Could not delete the photo.');
@@ -104,7 +121,7 @@ export default function PhotosScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <View style={styles.container}>
       <TopBar title="Photos" />
 
       {/* Photo Type Selector */}
@@ -170,7 +187,7 @@ export default function PhotosScreen() {
       </ScrollView>
 
       {/* Add Photo Button */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
         <Button
           onPress={() => router.back()}
           mode="outlined"
@@ -188,9 +205,11 @@ export default function PhotosScreen() {
           Add Photo
         </Button>
       </View>
-    </SafeAreaView>
+    </View>
   );
-}
+});
+
+export default PhotosScreen;
 
 const styles = StyleSheet.create({
   container: {

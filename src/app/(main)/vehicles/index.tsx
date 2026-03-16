@@ -1,17 +1,17 @@
-import { useState, useCallback } from 'react';
-import { View, StyleSheet, FlatList, RefreshControl, TextInput } from 'react-native';
-import { Text, FAB, Icon, Chip, ActivityIndicator } from 'react-native-paper';
+import { useState, useCallback, useEffect } from 'react';
+import { View, StyleSheet, FlatList, RefreshControl, TextInput, StatusBar, Pressable } from 'react-native';
+import { Text, FAB, Icon, ActivityIndicator } from 'react-native-paper';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { observer } from 'mobx-react-lite';
 import { GlassCard, AnimatedListItem, EmptyState } from '@presentation/components/common';
-import { useVehicles } from '@presentation/viewmodels/useVehicles';
-import { useCustomer } from '@presentation/viewmodels/useCustomers';
+import { useVehicleStore, useCustomerStore, useUIStore } from '@stores';
+import { useVehicleController, useCustomerController } from '@controllers';
 import { colors } from '@theme/colors';
 import { shadows } from '@theme/shadows';
 import { VEHICLE_MAKES } from '@core/constants';
-import { Vehicle } from '@domain/entities/Vehicle';
+import { Vehicle } from '@models';
 
-// Helper function to get vehicle emoji based on type/make
 function getVehicleEmoji(make: string): string {
   const motorcycleMakes = ['Honda', 'Yamaha', 'Kawasaki', 'Suzuki', 'Ducati', 'Harley-Davidson'];
   const suvMakes = ['Jeep', 'Land Rover', 'Range Rover'];
@@ -25,9 +25,9 @@ function getVehicleEmoji(make: string): string {
   return '🚗';
 }
 
-// Component to display customer info for a vehicle
-function CustomerInfo({ customerId }: { customerId: string }) {
-  const { data: customer } = useCustomer(customerId);
+const CustomerInfo = observer(function CustomerInfo({ customerId }: { customerId: string }) {
+  const customerStore = useCustomerStore();
+  const customer = customerStore.customers.find(c => c.id === customerId);
 
   if (!customer) return null;
 
@@ -38,17 +38,28 @@ function CustomerInfo({ customerId }: { customerId: string }) {
       <Text style={styles.customerPhone}>{customer.phone}</Text>
     </View>
   );
-}
+});
 
-export default function VehiclesScreen() {
+const VehiclesScreen = observer(function VehiclesScreen() {
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMake, setSelectedMake] = useState<string | null>(null);
-
-  const { data: vehicles, isLoading, refetch } = useVehicles();
   const [refreshing, setRefreshing] = useState(false);
 
-  const filteredVehicles = (vehicles || []).filter((vehicle) => {
+  const vehicleStore = useVehicleStore();
+  const uiStore = useUIStore();
+  const vehicleController = useVehicleController();
+  const customerController = useCustomerController();
+
+  useEffect(() => {
+    vehicleController.fetchAll();
+    customerController.fetchAll();
+  }, []);
+
+  const vehicles = vehicleStore.vehicles;
+  const isLoading = uiStore.isLoading;
+
+  const filteredVehicles = vehicles.filter((vehicle) => {
     const matchesSearch =
       !searchQuery ||
       vehicle.licensePlate.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -62,9 +73,11 @@ export default function VehiclesScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await refetch();
+    await vehicleController.fetchAll();
     setRefreshing(false);
-  }, [refetch]);
+  }, [vehicleController]);
+
+  const makeFilters = ['All', ...VEHICLE_MAKES.slice(0, 6)];
 
   const renderVehicleCard = ({ item, index }: { item: Vehicle; index: number }) => (
     <AnimatedListItem index={index}>
@@ -96,7 +109,8 @@ export default function VehiclesScreen() {
 
   if (isLoading && !refreshing) {
     return (
-      <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
+      <View style={styles.loadingContainer}>
+        <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Loading vehicles...</Text>
       </View>
@@ -104,55 +118,55 @@ export default function VehiclesScreen() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header Section */}
-      <View style={styles.header}>
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <Pressable style={styles.backButton} onPress={() => router.replace('/(main)/home')}>
+          <Icon source="arrow-left" size={24} color={colors.textPrimary} />
+        </Pressable>
         <Text style={styles.headerTitle}>Vehicles</Text>
         <View style={styles.countBadge}>
           <Text style={styles.countText}>{filteredVehicles.length}</Text>
         </View>
       </View>
 
-      {/* Search Bar with Icon */}
+      {/* Search Bar */}
       <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
-          <Icon source="magnify" size={20} color={colors.textDisabled} />
+          <Icon source="magnify" size={20} color={colors.systemGray} />
           <TextInput
             placeholder="Search by plate, make, or model"
-            placeholderTextColor={colors.textDisabled}
+            placeholderTextColor={colors.textPlaceholder}
             onChangeText={setSearchQuery}
             value={searchQuery}
             style={styles.searchInput}
           />
-          {searchQuery.length > 0 && (
-            <Icon source="close" size={18} color={colors.textSecondary} />
-          )}
         </View>
       </View>
 
+      {/* Filter Pills */}
       <View style={styles.filterContainer}>
         <FlatList
           horizontal
           showsHorizontalScrollIndicator={false}
-          data={['All', ...VEHICLE_MAKES.slice(0, 6)]}
+          data={makeFilters}
           keyExtractor={(item) => item}
           contentContainerStyle={styles.filterList}
-          renderItem={({ item }) => (
-            <Chip
-              selected={item === 'All' ? !selectedMake : selectedMake === item}
-              onPress={() => setSelectedMake(item === 'All' ? null : item)}
-              style={[
-                styles.filterChip,
-                (item === 'All' ? !selectedMake : selectedMake === item) && styles.filterChipSelected,
-              ]}
-              textStyle={[
-                styles.filterChipText,
-                (item === 'All' ? !selectedMake : selectedMake === item) && styles.filterChipTextSelected,
-              ]}
-            >
-              {item}
-            </Chip>
-          )}
+          renderItem={({ item }) => {
+            const isSelected = item === 'All' ? !selectedMake : selectedMake === item;
+            return (
+              <Pressable
+                onPress={() => setSelectedMake(item === 'All' ? null : item)}
+                style={[styles.filterPill, isSelected && styles.filterPillActive]}
+              >
+                <Text style={[styles.filterPillText, isSelected && styles.filterPillTextActive]}>
+                  {item}
+                </Text>
+              </Pressable>
+            );
+          }}
         />
       </View>
 
@@ -162,7 +176,7 @@ export default function VehiclesScreen() {
         renderItem={renderVehicleCard}
         contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} />
         }
         ListEmptyComponent={
           <EmptyState
@@ -177,38 +191,50 @@ export default function VehiclesScreen() {
 
       <FAB
         icon="plus"
-        style={[styles.fab, { bottom: insets.bottom + 16 }]}
+        style={[styles.fab, shadows.glow, { bottom: insets.bottom + 16 }]}
         onPress={() => router.push('/(main)/vehicles/new')}
         color={colors.textOnPrimary}
       />
     </View>
   );
-}
+});
+
+export default VehiclesScreen;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.surfaceSecondary,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.background,
+    backgroundColor: colors.surfaceSecondary,
   },
   loadingText: {
     marginTop: 12,
     color: colors.textSecondary,
-    fontSize: 14,
+    fontSize: 15,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 8,
+    paddingBottom: 12,
+    backgroundColor: colors.background,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.systemGray6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
   },
   headerTitle: {
+    flex: 1,
     fontSize: 28,
     fontWeight: '700',
     color: colors.textPrimary,
@@ -216,61 +242,59 @@ const styles = StyleSheet.create({
   countBadge: {
     marginLeft: 12,
     backgroundColor: colors.primaryDim,
-    borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: colors.primaryBorder,
+    borderRadius: 10,
   },
   countText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
-    color: colors.primaryLight,
+    color: colors.primary,
   },
   searchContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingBottom: 12,
+    backgroundColor: colors.background,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+    backgroundColor: colors.surfaceSecondary,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 36,
+    gap: 8,
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 17,
     color: colors.textPrimary,
-    marginLeft: 10,
     padding: 0,
   },
   filterContainer: {
-    paddingBottom: 8,
+    paddingBottom: 12,
+    backgroundColor: colors.background,
   },
   filterList: {
     paddingHorizontal: 16,
     gap: 8,
   },
-  filterChip: {
-    marginRight: 8,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+  filterPill: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: colors.surfaceSecondary,
   },
-  filterChipSelected: {
-    backgroundColor: colors.primaryDim,
-    borderColor: colors.primaryBorder,
+  filterPillActive: {
+    backgroundColor: colors.primary,
   },
-  filterChipText: {
-    fontSize: 12,
+  filterPillText: {
+    fontSize: 15,
+    fontWeight: '500',
     color: colors.textSecondary,
   },
-  filterChipTextSelected: {
-    color: colors.primaryLight,
+  filterPillTextActive: {
+    color: colors.textOnPrimary,
   },
   listContent: {
     padding: 16,
@@ -278,11 +302,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   vehicleCard: {
-    marginBottom: 12,
-    backgroundColor: colors.surfaceElevated,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    borderRadius: 16,
+    marginBottom: 10,
   },
   vehicleHeader: {
     flexDirection: 'row',
@@ -292,9 +312,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 14,
-    backgroundColor: colors.primaryDim,
-    borderWidth: 1,
-    borderColor: colors.primaryBorder,
+    backgroundColor: colors.systemGray6,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -306,24 +324,22 @@ const styles = StyleSheet.create({
     marginLeft: 14,
   },
   vehicleName: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '600',
     color: colors.textPrimary,
     marginBottom: 6,
   },
   licensePlateTag: {
     alignSelf: 'flex-start',
-    backgroundColor: colors.primaryDim,
+    backgroundColor: colors.systemGray6,
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderWidth: 1,
-    borderColor: colors.primaryBorder,
   },
   licensePlateText: {
     fontSize: 13,
-    color: colors.primaryLight,
-    fontWeight: '600',
+    color: colors.textSecondary,
+    fontWeight: '500',
     letterSpacing: 0.5,
   },
   colorDot: {
@@ -331,30 +347,29 @@ const styles = StyleSheet.create({
     height: 18,
     borderRadius: 9,
     borderWidth: 2,
-    borderColor: colors.borderLight,
+    borderColor: colors.separator,
   },
   customerInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 14,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: colors.borderLight,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 0.5,
+    borderTopColor: colors.separator,
   },
   customerName: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 15,
     color: colors.textSecondary,
     marginLeft: 8,
   },
   customerPhone: {
-    fontSize: 14,
-    color: colors.textSecondary,
+    fontSize: 15,
+    color: colors.textTertiary,
   },
   fab: {
     position: 'absolute',
     right: 16,
     backgroundColor: colors.primary,
-    ...shadows.glow,
   },
 });

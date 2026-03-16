@@ -1,19 +1,31 @@
-import { useState } from 'react';
+import { useState, useEffect, useLayoutEffect } from 'react';
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Text, SegmentedButtons, Chip } from 'react-native-paper';
-import { router, useLocalSearchParams } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Input, Card, TopBar } from '@presentation/components/common';
-import { useCreatePayment } from '@presentation/viewmodels/usePayments';
-import { useOrderWithDetails } from '@presentation/viewmodels/useOrders';
+import { router, useLocalSearchParams, useNavigation } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { observer } from 'mobx-react-lite';
+import { Button, Input, TopBar } from '@presentation/components/common';
+import { useOrderStore } from '@stores';
+import { useOrderController } from '@controllers';
 import { colors } from '@theme/colors';
 import { formatCurrency } from '@core/utils/formatCurrency';
-import { PaymentType, PaymentMethod, PAYMENT_TYPE_LABELS, PAYMENT_METHOD_LABELS } from '@core/constants';
+import { PaymentType, PaymentMethod, PAYMENT_METHOD_LABELS } from '@core/constants';
 
-export default function RecordPaymentScreen() {
+const RecordPaymentScreen = observer(function RecordPaymentScreen() {
   const { id: orderId } = useLocalSearchParams<{ id: string }>();
-  const createPaymentMutation = useCreatePayment();
-  const { data: order } = useOrderWithDetails(orderId || '');
+  const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
+  const orderStore = useOrderStore();
+  const orderController = useOrderController();
+
+  // Hide tab bar - need grandparent since: Tabs -> Stack -> Screen
+  useLayoutEffect(() => {
+    const tabNavigator = navigation.getParent()?.getParent();
+    tabNavigator?.setOptions({ tabBarStyle: { display: 'none' } });
+    return () => {
+      tabNavigator?.setOptions({ tabBarStyle: undefined });
+    };
+  }, [navigation]);
 
   const [form, setForm] = useState({
     amount: '',
@@ -23,6 +35,15 @@ export default function RecordPaymentScreen() {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (orderId) {
+      orderController.fetchWithDetails(orderId);
+    }
+  }, [orderId]);
+
+  const order = orderStore.currentOrder;
 
   // Calculate balance due
   const totalLabor = (order?.laborItems || []).reduce((sum, item) => sum + item.total, 0);
@@ -53,9 +74,9 @@ export default function RecordPaymentScreen() {
   const handleSubmit = async () => {
     if (!validate() || !orderId) return;
 
+    setIsSubmitting(true);
     try {
-      await createPaymentMutation.mutateAsync({
-        serviceOrderId: orderId,
+      await orderController.addPayment(orderId, {
         amount: parseFloat(form.amount),
         paymentType: form.paymentType,
         paymentMethod: form.paymentMethod,
@@ -64,6 +85,8 @@ export default function RecordPaymentScreen() {
       router.back();
     } catch (err) {
       console.error('Failed to record payment:', err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -75,7 +98,7 @@ export default function RecordPaymentScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <View style={styles.container}>
       <TopBar title="Payment" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -110,7 +133,7 @@ export default function RecordPaymentScreen() {
 
           {/* Amount Input */}
           <Input
-            label="Amount (₹) *"
+            label="Amount (Rs.) *"
             value={form.amount}
             onChangeText={(v) => updateField('amount', v.replace(/[^0-9.]/g, ''))}
             placeholder="Enter amount"
@@ -167,7 +190,7 @@ export default function RecordPaymentScreen() {
           />
         </ScrollView>
 
-        <View style={styles.footer}>
+        <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
           <Button
             onPress={() => router.back()}
             mode="outlined"
@@ -177,16 +200,18 @@ export default function RecordPaymentScreen() {
           </Button>
           <Button
             onPress={handleSubmit}
-            loading={createPaymentMutation.isPending}
+            loading={isSubmitting}
             style={styles.footerButton}
           >
             Record Payment
           </Button>
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
-}
+});
+
+export default RecordPaymentScreen;
 
 const styles = StyleSheet.create({
   container: {

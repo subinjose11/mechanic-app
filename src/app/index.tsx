@@ -1,14 +1,14 @@
-import { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Redirect } from 'expo-router';
 import { ActivityIndicator } from 'react-native-paper';
-import { useAuth } from '@presentation/viewmodels/useAuth';
+import { observer } from 'mobx-react-lite';
+import { useAuthStore } from '@views/hooks/useStore';
 import { colors } from '@theme/colors';
 
-export default function Index() {
-  const { user, isLoading, isAuthenticated } = useAuth();
+function Index() {
+  const authStore = useAuthStore();
 
-  if (isLoading) {
+  if (authStore.isLoading || authStore.status === 'idle') {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -16,9 +16,9 @@ export default function Index() {
     );
   }
 
-  if (isAuthenticated && user) {
+  if (authStore.isAuthenticated && authStore.user) {
     // Check if shop profile is complete
-    if (!user.shopName || !user.shopPhone || !user.shopAddress) {
+    if (authStore.needsShopSetup) {
       return <Redirect href="/(auth)/shop-setup" />;
     }
     return <Redirect href="/(main)/home" />;
@@ -26,6 +26,8 @@ export default function Index() {
 
   return <Redirect href="/(auth)/login" />;
 }
+
+export default observer(Index);
 
 const styles = StyleSheet.create({
   container: {

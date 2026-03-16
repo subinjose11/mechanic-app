@@ -1,80 +1,46 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { Text, FAB, SegmentedButtons, Icon } from 'react-native-paper';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Calendar, DateData } from 'react-native-calendars';
+import { observer } from 'mobx-react-lite';
 import { GlassCard, AnimatedListItem, EmptyState, StatusBadge } from '@presentation/components/common';
+import { useAppointmentStore } from '@stores';
+import { useAppointmentController } from '@controllers';
 import { colors } from '@theme/colors';
 import { shadows } from '@theme/shadows';
 import { formatDate, formatTime } from '@core/utils/formatDate';
 import { AppointmentStatus } from '@core/constants';
+import { Appointment } from '@models';
 
-interface AppointmentItem {
-  id: string;
-  customerName: string;
-  vehicleName: string;
-  licensePlate: string;
-  serviceType: string;
-  scheduledDate: Date;
-  scheduledTime: string;
-  durationMinutes: number;
-  status: AppointmentStatus;
-  notes?: string;
-}
-
-const mockAppointments: AppointmentItem[] = [
-  {
-    id: '1',
-    customerName: 'Rahul Sharma',
-    vehicleName: 'Maruti Swift',
-    licensePlate: 'MH 12 AB 1234',
-    serviceType: 'General Service',
-    scheduledDate: new Date(),
-    scheduledTime: '10:00',
-    durationMinutes: 60,
-    status: 'confirmed',
-  },
-  {
-    id: '2',
-    customerName: 'Priya Patel',
-    vehicleName: 'Honda City',
-    licensePlate: 'MH 14 CD 5678',
-    serviceType: 'AC Service',
-    scheduledDate: new Date(),
-    scheduledTime: '14:00',
-    durationMinutes: 90,
-    status: 'scheduled',
-  },
-  {
-    id: '3',
-    customerName: 'Amit Kumar',
-    vehicleName: 'Hyundai Creta',
-    licensePlate: 'MH 01 EF 9012',
-    serviceType: 'Oil Change',
-    scheduledDate: new Date(Date.now() + 86400000),
-    scheduledTime: '11:00',
-    durationMinutes: 30,
-    status: 'scheduled',
-  },
-];
-
-export default function AppointmentsScreen() {
+const AppointmentsScreen = observer(function AppointmentsScreen() {
+  const appointmentStore = useAppointmentStore();
+  const appointmentController = useAppointmentController();
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [refreshing, setRefreshing] = useState(false);
 
-  const filteredAppointments = mockAppointments.filter((apt) => {
+  useEffect(() => {
+    appointmentController.fetchAll();
+  }, []);
+
+  const filteredAppointments = appointmentStore.appointments.filter((apt) => {
     if (viewMode === 'calendar') {
-      return apt.scheduledDate.toISOString().split('T')[0] === selectedDate;
+      const aptDate = new Date(apt.scheduledDate);
+      return aptDate.toISOString().split('T')[0] === selectedDate;
     }
     return true;
   });
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
+    try {
+      await appointmentController.fetchAll();
+    } finally {
+      setRefreshing(false);
+    }
   }, []);
 
   const handleDateSelect = (day: DateData) => {
@@ -83,8 +49,9 @@ export default function AppointmentsScreen() {
 
   const getMarkedDates = () => {
     const marked: Record<string, any> = {};
-    mockAppointments.forEach((apt) => {
-      const dateStr = apt.scheduledDate.toISOString().split('T')[0];
+    appointmentStore.appointments.forEach((apt) => {
+      const aptDate = new Date(apt.scheduledDate);
+      const dateStr = aptDate.toISOString().split('T')[0];
       marked[dateStr] = {
         marked: true,
         dotColor: colors.primary,
@@ -101,9 +68,17 @@ export default function AppointmentsScreen() {
     return marked;
   };
 
-  const renderAppointmentCard = ({ item, index }: { item: AppointmentItem; index: number }) => (
+  const handleAppointmentPress = (appointment: Appointment) => {
+    // Could navigate to detail screen or show actions modal
+    // For now, navigate to create order if completed
+    if (appointment.status === 'confirmed') {
+      router.push(`/(main)/orders/new?vehicleId=${appointment.vehicleId}`);
+    }
+  };
+
+  const renderAppointmentCard = ({ item, index }: { item: Appointment; index: number }) => (
     <AnimatedListItem index={index}>
-      <GlassCard style={styles.appointmentCard} onPress={() => {}}>
+      <GlassCard style={styles.appointmentCard} onPress={() => handleAppointmentPress(item)}>
         <View style={styles.appointmentHeader}>
           <View style={styles.timeSlot}>
             <Icon source="clock-outline" size={16} color={colors.primary} />
@@ -118,7 +93,7 @@ export default function AppointmentsScreen() {
           <View style={styles.vehicleRow}>
             <Icon source="car" size={14} color={colors.textSecondary} />
             <Text style={styles.vehicleText}>
-              {item.vehicleName} ({item.licensePlate})
+              {item.vehicleMake} {item.vehicleModel} ({item.vehicleLicensePlate})
             </Text>
           </View>
           <View style={styles.customerRow}>
@@ -130,7 +105,7 @@ export default function AppointmentsScreen() {
         {viewMode === 'list' && (
           <View style={styles.dateRow}>
             <Icon source="calendar" size={14} color={colors.textSecondary} />
-            <Text style={styles.dateText}>{formatDate(item.scheduledDate)}</Text>
+            <Text style={styles.dateText}>{formatDate(new Date(item.scheduledDate))}</Text>
           </View>
         )}
       </GlassCard>
@@ -218,7 +193,9 @@ export default function AppointmentsScreen() {
       />
     </SafeAreaView>
   );
-}
+});
+
+export default AppointmentsScreen;
 
 const styles = StyleSheet.create({
   container: {

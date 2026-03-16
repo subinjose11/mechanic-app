@@ -1,30 +1,20 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { Text, FAB, Icon, Chip, Searchbar } from 'react-native-paper';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { observer } from 'mobx-react-lite';
 import { GlassCard, AnimatedListItem, EmptyState } from '@presentation/components/common';
+import { useExpenseStore } from '@stores';
+import { useExpenseController } from '@controllers';
 import { colors } from '@theme/colors';
 import { shadows } from '@theme/shadows';
 import { formatCurrency } from '@core/utils/formatCurrency';
 import { formatDate } from '@core/utils/formatDate';
 import { EXPENSE_CATEGORY_LABELS, ExpenseCategory } from '@core/constants';
-
-interface ExpenseItem {
-  id: string;
-  category: ExpenseCategory;
-  amount: number;
-  description: string;
-  date: Date;
-}
-
-const mockExpenses: ExpenseItem[] = [
-  { id: '1', category: 'supplies', amount: 5000, description: 'Engine oil stock', date: new Date() },
-  { id: '2', category: 'utilities', amount: 2500, description: 'Electricity bill', date: new Date(Date.now() - 86400000) },
-  { id: '3', category: 'rent', amount: 15000, description: 'Monthly rent', date: new Date(Date.now() - 86400000 * 3) },
-];
+import { Expense } from '@models';
 
 const categoryColors: Record<ExpenseCategory, string> = {
   rent: colors.expenseRent,
@@ -33,16 +23,22 @@ const categoryColors: Record<ExpenseCategory, string> = {
   other: colors.expenseOther,
 };
 
-export default function ExpensesScreen() {
+const ExpensesScreen = observer(function ExpensesScreen() {
   const insets = useSafeAreaInsets();
+  const expenseStore = useExpenseStore();
+  const expenseController = useExpenseController();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
-  const filteredExpenses = mockExpenses.filter((expense) => {
+  useEffect(() => {
+    expenseController.fetchAll();
+  }, []);
+
+  const filteredExpenses = expenseStore.expenses.filter((expense) => {
     const matchesCategory = selectedCategory === 'all' || expense.category === selectedCategory;
     const matchesSearch = !searchQuery ||
-      expense.description.toLowerCase().includes(searchQuery.toLowerCase());
+      (expense.description || '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
@@ -50,10 +46,14 @@ export default function ExpensesScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
+    try {
+      await expenseController.fetchAll();
+    } finally {
+      setRefreshing(false);
+    }
   }, []);
 
-  const renderExpenseCard = ({ item, index }: { item: ExpenseItem; index: number }) => (
+  const renderExpenseCard = ({ item, index }: { item: Expense; index: number }) => (
     <AnimatedListItem index={index}>
       <GlassCard style={styles.card}>
         <View style={styles.row}>
@@ -171,7 +171,9 @@ export default function ExpensesScreen() {
       />
     </View>
   );
-}
+});
+
+export default ExpensesScreen;
 
 const styles = StyleSheet.create({
   container: {

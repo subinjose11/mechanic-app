@@ -14,7 +14,8 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.mechanicshop.app"
+      "bundleIdentifier": "com.mechanicshop.app",
+      "newArchEnabled": false
     },
     "android": {
       "adaptiveIcon": {
@@ -28,7 +29,9 @@
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE"
-      ]
+      ],
+      "newArchEnabled": false,
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -37,6 +40,9 @@
     "plugins": [
       "expo-router",
       "expo-sharing",
+      "@react-native-firebase/app",
+      "@react-native-firebase/auth",
+      "@react-native-google-signin/google-signin",
       [
         "expo-camera",
         {

@@ -1,17 +1,26 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Text, IconButton, Snackbar } from 'react-native-paper';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { observer } from 'mobx-react-lite';
 import { Button, Input, Card, TopBar } from '@presentation/components/common';
-import { useAuth } from '@presentation/viewmodels/useAuth';
+import { useAuthStore, useUIStore } from '@stores';
+import { useAuthController } from '@controllers';
 import { colors } from '@theme/colors';
 import { isValidPhone } from '@core/utils/validators';
 
-export default function ShopProfileScreen() {
-  const { user, updateProfile, isLoading, error } = useAuth();
+const ShopProfileScreen = observer(function ShopProfileScreen() {
+  const authStore = useAuthStore();
+  const uiStore = useUIStore();
+  const authController = useAuthController();
+  const user = authStore.user;
+  const isLoading = uiStore.isLoading;
+  const error = authStore.error;
+
   const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [form, setForm] = useState({
     name: user?.name || '',
@@ -22,6 +31,19 @@ export default function ShopProfileScreen() {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Update form when user data changes
+  useEffect(() => {
+    if (user) {
+      setForm({
+        name: user.name || '',
+        phone: user.phone || '',
+        shopName: user.shopName || '',
+        shopPhone: user.shopPhone || '',
+        shopAddress: user.shopAddress || '',
+      });
+    }
+  }, [user]);
 
   const updateField = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -49,17 +71,24 @@ export default function ShopProfileScreen() {
   const handleSave = async () => {
     if (!validate()) return;
 
+    setIsSubmitting(true);
     try {
-      await updateProfile({
-        name: form.name.trim(),
-        phone: form.phone.trim() || null,
+      // Update shop profile
+      await authController.updateShopProfile({
         shopName: form.shopName.trim(),
         shopPhone: form.shopPhone.trim(),
         shopAddress: form.shopAddress.trim(),
       });
+      // Update user profile
+      await authController.updateProfile({
+        name: form.name.trim(),
+        phone: form.phone.trim() || undefined,
+      });
       setSnackbarVisible(true);
     } catch (err) {
       console.error('Failed to update profile:', err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -99,7 +128,7 @@ export default function ShopProfileScreen() {
               placeholder="Your full name"
               autoCapitalize="words"
               error={errors.name}
-              left={<IconButton icon="account" size={20} />}
+              leftIcon="account"
             />
 
             <View style={styles.spacing} />
@@ -111,7 +140,7 @@ export default function ShopProfileScreen() {
               placeholder="Your personal phone"
               keyboardType="phone-pad"
               maxLength={10}
-              left={<IconButton icon="phone" size={20} />}
+              leftIcon="phone"
             />
           </View>
 
@@ -128,7 +157,7 @@ export default function ShopProfileScreen() {
               placeholder="e.g., Kumar Auto Works"
               autoCapitalize="words"
               error={errors.shopName}
-              left={<IconButton icon="store" size={20} />}
+              leftIcon="store"
             />
 
             <View style={styles.spacing} />
@@ -141,7 +170,7 @@ export default function ShopProfileScreen() {
               keyboardType="phone-pad"
               maxLength={10}
               error={errors.shopPhone}
-              left={<IconButton icon="phone" size={20} />}
+              leftIcon="phone"
             />
 
             <View style={styles.spacing} />
@@ -154,7 +183,7 @@ export default function ShopProfileScreen() {
               multiline
               numberOfLines={3}
               error={errors.shopAddress}
-              left={<IconButton icon="map-marker" size={20} />}
+              leftIcon="map-marker"
             />
           </View>
 
@@ -190,7 +219,7 @@ export default function ShopProfileScreen() {
           </Button>
           <Button
             onPress={handleSave}
-            loading={isLoading}
+            loading={isSubmitting}
             style={styles.footerButton}
           >
             Save Changes
@@ -211,7 +240,9 @@ export default function ShopProfileScreen() {
       </Snackbar>
     </SafeAreaView>
   );
-}
+});
+
+export default ShopProfileScreen;
 
 const styles = StyleSheet.create({
   container: {

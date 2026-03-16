@@ -1,670 +1,1124 @@
-import { useState, useMemo } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { Text, Icon, IconButton, Menu, Divider, ActivityIndicator } from 'react-native-paper';
-import { useLocalSearchParams, router } from 'expo-router';
-import { Card, Button, StatusBadge, TopBar, GlassCard } from '@presentation/components/common';
-import { useOrderWithDetails, useUpdateOrderStatus } from '@presentation/viewmodels/useOrders';
-import { useVehicle } from '@presentation/viewmodels/useVehicles';
-import { useCustomer } from '@presentation/viewmodels/useCustomers';
-import { colors } from '@theme/colors';
+import { useState, useMemo, useEffect, useRef, useLayoutEffect } from 'react';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  StatusBar,
+  Pressable,
+  Modal,
+  TextInput,
+  Animated,
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+} from 'react-native';
+import { Text, Icon, ActivityIndicator, Menu } from 'react-native-paper';
+import { useLocalSearchParams, router, useNavigation } from 'expo-router';
+import { observer } from 'mobx-react-lite';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { formatDate, formatDateTime } from '@core/utils/formatDate';
+import { useOrderStore } from '@stores';
+import { useOrderController } from '@controllers';
+import { colors } from '@theme/colors';
+import { formatDateTime } from '@core/utils/formatDate';
 import { formatCurrency } from '@core/utils/formatCurrency';
-import { PAYMENT_METHOD_LABELS, OrderStatus } from '@core/constants';
+import { OrderStatus } from '@core/constants';
 
-export default function OrderDetailScreen() {
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+// Bottom Sheet Component
+function BottomSheet({
+  visible,
+  onClose,
+  title,
+  children,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+}) {
+  const insets = useSafeAreaInsets();
+  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  const backdropAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      Animated.parallel([
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 65,
+          friction: 11,
+        }),
+        Animated.timing(backdropAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: SCREEN_HEIGHT,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(backdropAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [visible]);
+
+  if (!visible) return null;
+
+  return (
+    <Modal transparent visible={visible} animationType="none" onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.modalContainer}
+      >
+        <Animated.View style={[styles.modalBackdrop, { opacity: backdropAnim }]}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+        </Animated.View>
+        <Animated.View
+          style={[
+            styles.bottomSheet,
+            { paddingBottom: insets.bottom + 20, transform: [{ translateY: slideAnim }] },
+          ]}
+        >
+          <View style={styles.sheetHandle} />
+          <Text style={styles.sheetTitle}>{title}</Text>
+          {children}
+        </Animated.View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+// Action Card Component
+function ActionCard({
+  icon,
+  iconBg,
+  title,
+  subtitle,
+  value,
+  onPress,
+  showAdd,
+}: {
+  icon: string;
+  iconBg: string[];
+  title: string;
+  subtitle?: string;
+  value?: string;
+  onPress?: () => void;
+  showAdd?: boolean;
+}) {
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.actionCard, pressed && styles.actionCardPressed]}
+      onPress={onPress}
+    >
+      <LinearGradient colors={iconBg} style={styles.actionIcon} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+        <Icon source={icon} size={22} color="#fff" />
+      </LinearGradient>
+      <View style={styles.actionContent}>
+        <Text style={styles.actionTitle}>{title}</Text>
+        {subtitle && <Text style={styles.actionSubtitle}>{subtitle}</Text>}
+      </View>
+      {value && (
+        <View style={styles.actionValueContainer}>
+          <Text style={styles.actionValue}>{value}</Text>
+        </View>
+      )}
+      {showAdd && (
+        <View style={styles.actionAddBadge}>
+          <Icon source="plus" size={18} color={colors.primary} />
+        </View>
+      )}
+      <Icon source="chevron-right" size={22} color={colors.systemGray3} />
+    </Pressable>
+  );
+}
+
+const OrderDetailScreen = observer(function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
+  const orderStore = useOrderStore();
+  const orderController = useOrderController();
+
+  useLayoutEffect(() => {
+    const tabNavigator = navigation.getParent()?.getParent();
+    tabNavigator?.setOptions({ tabBarStyle: { display: 'none' } });
+    return () => {
+      tabNavigator?.setOptions({ tabBarStyle: undefined });
+    };
+  }, [navigation]);
+
+  const [showLaborSheet, setShowLaborSheet] = useState(false);
+  const [showPartsSheet, setShowPartsSheet] = useState(false);
+  const [laborDesc, setLaborDesc] = useState('');
+  const [laborAmount, setLaborAmount] = useState('');
+  const [partName, setPartName] = useState('');
+  const [partPrice, setPartPrice] = useState('');
+  const [partQty, setPartQty] = useState('1');
+  const [isAdding, setIsAdding] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
 
-  const { data: order, isLoading } = useOrderWithDetails(id || '');
-  const { data: vehicle } = useVehicle(order?.vehicleId || '');
-  const { data: customer } = useCustomer(order?.customerId || '');
-  const updateStatusMutation = useUpdateOrderStatus();
+  const handleDeleteOrder = () => {
+    setMenuVisible(false);
+    Alert.alert(
+      'Delete Order',
+      'Are you sure you want to delete this order? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              if (id) {
+                await orderController.delete(id);
+                router.back();
+              }
+            } catch (err) {
+              Alert.alert('Error', 'Failed to delete order. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
 
-  // Calculate totals
-  const { totalLabor, totalParts, totalAmount, totalPaid, balanceDue } = useMemo(() => {
-    if (!order) return { totalLabor: 0, totalParts: 0, totalAmount: 0, totalPaid: 0, balanceDue: 0 };
+  useEffect(() => {
+    if (id) {
+      orderController.fetchWithDetails(id);
+    }
+  }, [id]);
 
-    const laborItems = order.laborItems || [];
-    const spareParts = order.spareParts || [];
-    const payments = order.payments || [];
+  const order = orderStore.currentOrder;
+  const isLoading = orderStore.isLoading;
 
-    const tLabor = laborItems.reduce((sum, item) => sum + item.total, 0);
-    const tParts = spareParts.reduce((sum, item) => sum + item.total, 0);
-    const tAmount = tLabor + tParts;
-    const tPaid = payments.reduce((sum, p) => sum + p.amount, 0);
-
-    return {
-      totalLabor: tLabor,
-      totalParts: tParts,
-      totalAmount: tAmount,
-      totalPaid: tPaid,
-      balanceDue: tAmount - tPaid,
-    };
+  const totals = useMemo(() => {
+    if (!order) return { labor: 0, parts: 0, total: 0, paid: 0, due: 0 };
+    const labor = (order.laborItems || []).reduce((sum, i) => sum + i.total, 0);
+    const parts = (order.spareParts || []).reduce((sum, i) => sum + i.total, 0);
+    const paid = (order.payments || []).reduce((sum, p) => sum + p.amount, 0);
+    return { labor, parts, total: labor + parts, paid, due: labor + parts - paid };
   }, [order]);
 
-  const vehicleName = vehicle ? `${vehicle.make} ${vehicle.model}${vehicle.year ? ` (${vehicle.year})` : ''}` : 'Loading...';
-  const licensePlate = vehicle?.licensePlate || '';
-  const customerName = customer?.name || 'Loading...';
-  const customerPhone = customer?.phone || '';
-
-  const handleUpdateStatus = async (newStatus: OrderStatus) => {
-    setMenuVisible(false);
-    if (!id) return;
+  const handleAddLabor = async (desc: string, amount: number) => {
+    if (!id || isAdding) return;
+    setIsAdding(true);
     try {
-      await updateStatusMutation.mutateAsync({ id, status: newStatus });
-    } catch (err) {
-      console.error('Failed to update status:', err);
+      await orderController.addLaborItem(id, { description: desc, hours: 1, ratePerHour: amount });
+      setLaborDesc('');
+      setLaborAmount('');
+      setShowLaborSheet(false);
+    } catch (e) {
+      console.error(e);
     }
+    setIsAdding(false);
   };
 
-  const handleGeneratePDF = () => {
-    // TODO: Generate PDF invoice
+  const handleAddPart = async (name: string, price: number, qty: number) => {
+    if (!id || isAdding) return;
+    setIsAdding(true);
+    try {
+      await orderController.addSparePart(id, { partName: name, quantity: qty, unitPrice: price });
+      setPartName('');
+      setPartPrice('');
+      setPartQty('1');
+      setShowPartsSheet(false);
+    } catch (e) {
+      console.error(e);
+    }
+    setIsAdding(false);
   };
 
-  const handleAddPayment = () => {
-    router.push(`/(main)/orders/${id}/payment`);
+  const handleDeleteLabor = async (itemId: string) => {
+    if (!id) return;
+    await orderController.deleteLaborItem(id, itemId);
+  };
+
+  const handleDeletePart = async (itemId: string) => {
+    if (!id) return;
+    await orderController.deleteSparePart(id, itemId);
+  };
+
+  const updateStatus = async (status: OrderStatus) => {
+    if (!id) return;
+    await orderController.updateStatus(id, status);
   };
 
   if (isLoading || !order) {
     return (
       <View style={styles.loadingContainer}>
+        <StatusBar barStyle="dark-content" />
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Loading order...</Text>
+        <Text style={styles.loadingText}>Loading job details...</Text>
       </View>
     );
   }
 
+  const laborCount = order.laborItems?.length || 0;
+  const partsCount = order.spareParts?.length || 0;
+  const paymentCount = order.payments?.length || 0;
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return colors.success;
+      case 'in_progress': return colors.primary;
+      default: return colors.systemOrange;
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <TopBar
-        title="Order Details"
-        showBack
-        rightAction={
+      <StatusBar barStyle="light-content" />
+
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={[colors.primary, '#1a1a2e']}
+        style={[styles.headerGradient, { paddingTop: insets.top }]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <View style={styles.headerTop}>
+          <Pressable style={styles.backBtn} onPress={() => router.back()}>
+            <Icon source="arrow-left" size={24} color="#fff" />
+          </Pressable>
+          <Text style={styles.headerLabel}>Job Details</Text>
           <Menu
             visible={menuVisible}
             onDismiss={() => setMenuVisible(false)}
             anchor={
-              <IconButton
-                icon="dots-vertical"
-                iconColor={colors.textPrimary}
-                onPress={() => setMenuVisible(true)}
-              />
+              <Pressable style={styles.menuBtn} onPress={() => setMenuVisible(true)}>
+                <Icon source="dots-vertical" size={24} color="#fff" />
+              </Pressable>
             }
             contentStyle={styles.menuContent}
           >
-            <Menu.Item onPress={() => handleUpdateStatus('pending' as OrderStatus)} title="Mark Pending" titleStyle={styles.menuItemText} />
-            <Menu.Item onPress={() => handleUpdateStatus('in_progress' as OrderStatus)} title="Mark In Progress" titleStyle={styles.menuItemText} />
-            <Menu.Item onPress={() => handleUpdateStatus('completed' as OrderStatus)} title="Mark Completed" titleStyle={styles.menuItemText} />
-            <Divider style={styles.menuDivider} />
-            <Menu.Item onPress={handleGeneratePDF} title="Generate Invoice" leadingIcon="file-pdf-box" titleStyle={styles.menuItemText} />
+            <Menu.Item
+              onPress={handleDeleteOrder}
+              title="Delete Order"
+              leadingIcon="delete"
+              titleStyle={{ color: colors.error }}
+            />
           </Menu>
-        }
-      />
+        </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Hero Section with Gradient */}
-        <LinearGradient
-          colors={['#12103a', colors.background]}
-          style={styles.heroGradient}
-        >
-          {/* Stats Cards */}
-          <View style={styles.statsContainer}>
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{formatCurrency(totalAmount)}</Text>
-              <Text style={styles.statLabel}>Total</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={[styles.statValue, { color: colors.success }]}>{formatCurrency(totalPaid)}</Text>
-              <Text style={styles.statLabel}>Paid</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={[styles.statValue, balanceDue > 0 ? { color: colors.error } : { color: colors.success }]}>
-                {formatCurrency(balanceDue)}
-              </Text>
-              <Text style={styles.statLabel}>Balance</Text>
-            </View>
-          </View>
-        </LinearGradient>
+        {/* Vehicle Info */}
+        <View style={styles.vehicleSection}>
+          <Text style={styles.vehicleName}>
+            {order.vehicleMake} {order.vehicleModel}
+          </Text>
+          <Text style={styles.customerName}>{order.customerName}</Text>
 
-        <View style={styles.content}>
-          {/* Status & Basic Info */}
-          <GlassCard style={styles.sectionCard} contentStyle={styles.sectionCardContent}>
-            <View style={styles.statusRow}>
-              <StatusBadge status={order.status} />
-              <Text style={styles.orderDate}>{formatDateTime(order.createdAt)}</Text>
+          {/* Plate & KM Row */}
+          <View style={styles.infoRow}>
+            <View style={styles.infoBox}>
+              <Text style={styles.infoLabel}>REG NO</Text>
+              <Text style={styles.infoValue}>{order.vehicleLicensePlate || 'N/A'}</Text>
             </View>
-
-            <View style={styles.vehicleSection}>
-              <View style={styles.vehicleIcon}>
-                <Icon source="car" size={28} color={colors.primary} />
+            {order.kmReading && (
+              <View style={styles.infoBox}>
+                <Text style={styles.infoLabel}>ODOMETER</Text>
+                <Text style={styles.infoValue}>{order.kmReading.toLocaleString()} km</Text>
               </View>
-              <View style={styles.vehicleInfo}>
-                <Text style={styles.vehicleName}>{vehicleName}</Text>
-                <Text style={styles.licensePlate}>{licensePlate}</Text>
-                {order.kmReading && (
-                  <Text style={styles.kmReading}>KM: {order.kmReading.toLocaleString()}</Text>
-                )}
-              </View>
-            </View>
-
-            <View style={styles.customerRow}>
-              <Icon source="account" size={18} color={colors.textSecondary} />
-              <Text style={styles.customerName}>{customerName}</Text>
-              <IconButton
-                icon="phone"
-                size={18}
-                iconColor={colors.primary}
-                onPress={() => {}}
-              />
-            </View>
-
-            {order.description && (
-              <View style={styles.descriptionBox}>
-                <Text style={styles.descriptionLabel}>Description</Text>
-                <Text style={styles.descriptionText}>{order.description}</Text>
-              </View>
-            )}
-
-            {order.notes && (
-              <View style={styles.notesBox}>
-                <Text style={styles.notesLabel}>Notes</Text>
-                <Text style={styles.notesText}>{order.notes}</Text>
-              </View>
-            )}
-          </GlassCard>
-
-          {/* Labor Items */}
-          <GlassCard style={styles.sectionCard} contentStyle={styles.sectionCardContent}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Labor</Text>
-              <IconButton icon="plus" size={20} iconColor={colors.primary} onPress={() => router.push(`/(main)/orders/${id}/labor`)} />
-            </View>
-
-            {(order.laborItems || []).length > 0 ? (
-              <>
-                {(order.laborItems || []).map((item, index) => (
-                  <View key={item.id}>
-                    {index > 0 && <Divider style={styles.divider} />}
-                    <View style={styles.lineItem}>
-                      <View style={styles.lineItemInfo}>
-                        <Text style={styles.lineItemName}>{item.description}</Text>
-                        <Text style={styles.lineItemDetails}>
-                          {item.hours} hrs x {formatCurrency(item.ratePerHour)}/hr
-                        </Text>
-                      </View>
-                      <Text style={styles.lineItemTotal}>{formatCurrency(item.total)}</Text>
-                    </View>
-                  </View>
-                ))}
-                <View style={styles.subtotalRow}>
-                  <Text style={styles.subtotalLabel}>Labor Total</Text>
-                  <Text style={styles.subtotalValue}>{formatCurrency(totalLabor)}</Text>
-                </View>
-              </>
-            ) : (
-              <Text style={styles.emptyText}>No labor items added yet</Text>
-            )}
-          </GlassCard>
-
-          {/* Spare Parts */}
-          <GlassCard style={styles.sectionCard} contentStyle={styles.sectionCardContent}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Spare Parts</Text>
-              <IconButton icon="plus" size={20} iconColor={colors.primary} onPress={() => router.push(`/(main)/orders/${id}/parts`)} />
-            </View>
-
-            {(order.spareParts || []).length > 0 ? (
-              <>
-                {(order.spareParts || []).map((item, index) => (
-                  <View key={item.id}>
-                    {index > 0 && <Divider style={styles.divider} />}
-                    <View style={styles.lineItem}>
-                      <View style={styles.lineItemInfo}>
-                        <Text style={styles.lineItemName}>{item.partName}</Text>
-                        <Text style={styles.lineItemDetails}>
-                          {item.partNumber && `${item.partNumber} • `}
-                          {item.quantity} x {formatCurrency(item.unitPrice)}
-                        </Text>
-                      </View>
-                      <Text style={styles.lineItemTotal}>{formatCurrency(item.total)}</Text>
-                    </View>
-                  </View>
-                ))}
-                <View style={styles.subtotalRow}>
-                  <Text style={styles.subtotalLabel}>Parts Total</Text>
-                  <Text style={styles.subtotalValue}>{formatCurrency(totalParts)}</Text>
-                </View>
-              </>
-            ) : (
-              <Text style={styles.emptyText}>No spare parts added yet</Text>
-            )}
-          </GlassCard>
-
-          {/* Bill Summary */}
-          <GlassCard style={styles.sectionCard} contentStyle={styles.sectionCardContent}>
-            <Text style={styles.sectionTitle}>Bill Summary</Text>
-
-            <View style={styles.billRow}>
-              <Text style={styles.billLabel}>Labor</Text>
-              <Text style={styles.billValue}>{formatCurrency(totalLabor)}</Text>
-            </View>
-            <View style={styles.billRow}>
-              <Text style={styles.billLabel}>Parts</Text>
-              <Text style={styles.billValue}>{formatCurrency(totalParts)}</Text>
-            </View>
-            <Divider style={styles.divider} />
-            <View style={styles.billRow}>
-              <Text style={styles.totalLabel}>Total</Text>
-              <Text style={styles.totalValue}>{formatCurrency(totalAmount)}</Text>
-            </View>
-            <View style={styles.billRow}>
-              <Text style={styles.paidLabel}>Paid</Text>
-              <Text style={styles.paidValue}>- {formatCurrency(totalPaid)}</Text>
-            </View>
-            <View style={[styles.billRow, styles.balanceRow]}>
-              <Text style={styles.balanceLabel}>Balance Due</Text>
-              <Text style={[styles.balanceValue, balanceDue > 0 && styles.balanceDueText]}>
-                {formatCurrency(balanceDue)}
-              </Text>
-            </View>
-          </GlassCard>
-
-          {/* Payments */}
-          <GlassCard style={styles.sectionCard} contentStyle={styles.sectionCardContent}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Payments</Text>
-              <Button mode="text" onPress={handleAddPayment}>
-                Add Payment
-              </Button>
-            </View>
-
-            {(order.payments || []).length > 0 ? (
-              (order.payments || []).map((payment, index) => (
-                <View key={payment.id}>
-                  {index > 0 && <Divider style={styles.divider} />}
-                  <View style={styles.paymentItem}>
-                    <View>
-                      <Text style={styles.paymentType}>
-                        {payment.paymentType === 'advance' ? 'Advance' : 'Final Payment'}
-                      </Text>
-                      <Text style={styles.paymentDetails}>
-                        {PAYMENT_METHOD_LABELS[payment.paymentMethod as keyof typeof PAYMENT_METHOD_LABELS]} • {formatDate(payment.date)}
-                      </Text>
-                    </View>
-                    <Text style={styles.paymentAmount}>{formatCurrency(payment.amount)}</Text>
-                  </View>
-                </View>
-              ))
-            ) : (
-              <Text style={styles.emptyText}>No payments recorded yet</Text>
-            )}
-          </GlassCard>
-
-          {/* Photos Section */}
-          <GlassCard style={styles.sectionCard} contentStyle={styles.sectionCardContent}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Photos</Text>
-              <IconButton icon="camera-plus" size={20} iconColor={colors.primary} onPress={() => router.push(`/(main)/orders/${id}/photos`)} />
-            </View>
-            {(order.photos || []).length > 0 ? (
-              <View style={styles.photosPreview}>
-                {(order.photos || []).slice(0, 4).map((photo, index) => (
-                  <View key={photo.id} style={styles.photoThumb}>
-                    <Icon source="image" size={24} color={colors.textSecondary} />
-                  </View>
-                ))}
-                {(order.photos || []).length > 4 && (
-                  <View style={styles.morePhotos}>
-                    <Text style={styles.morePhotosText}>+{(order.photos || []).length - 4}</Text>
-                  </View>
-                )}
-              </View>
-            ) : (
-              <Text style={styles.emptyText}>No photos added yet</Text>
-            )}
-          </GlassCard>
-
-          {/* Action Buttons */}
-          <View style={styles.actionButtons}>
-            <Button
-              mode="outlined"
-              icon="file-pdf-box"
-              onPress={handleGeneratePDF}
-              style={styles.actionButton}
-            >
-              Generate Invoice
-            </Button>
-            {balanceDue > 0 && (
-              <Button
-                mode="contained"
-                icon="cash"
-                onPress={handleAddPayment}
-                style={styles.actionButton}
-              >
-                Record Payment
-              </Button>
             )}
           </View>
         </View>
+
+        {/* Status & Date */}
+        <View style={styles.metaRow}>
+          <View style={[styles.statusPill, { backgroundColor: getStatusColor(order.status) + '30' }]}>
+            <View style={[styles.statusDot, { backgroundColor: getStatusColor(order.status) }]} />
+            <Text style={[styles.statusText, { color: getStatusColor(order.status) }]}>
+              {order.status === 'pending' ? 'Pending' : order.status === 'in_progress' ? 'In Progress' : 'Completed'}
+            </Text>
+          </View>
+          <Text style={styles.dateText}>{formatDateTime(order.createdAt)}</Text>
+        </View>
+      </LinearGradient>
+
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 200 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Quick Stats */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>{formatCurrency(totals.total)}</Text>
+            <Text style={styles.statLabel}>Total Amount</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statCard}>
+            <Text style={[styles.statValue, { color: colors.success }]}>{formatCurrency(totals.paid)}</Text>
+            <Text style={styles.statLabel}>Paid</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statCard}>
+            <Text style={[styles.statValue, totals.due > 0 && { color: colors.error }]}>
+              {formatCurrency(totals.due)}
+            </Text>
+            <Text style={styles.statLabel}>Balance</Text>
+          </View>
+        </View>
+
+        {/* Description Card */}
+        {order.description && (
+          <View style={styles.descriptionCard}>
+            <View style={styles.descriptionHeader}>
+              <Icon source="clipboard-text-outline" size={18} color={colors.primary} />
+              <Text style={styles.descriptionTitle}>Work Description</Text>
+            </View>
+            <Text style={styles.descriptionText}>{order.description}</Text>
+          </View>
+        )}
+
+        {/* Work & Parts */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Icon source="tools" size={20} color={colors.textSecondary} />
+            <Text style={styles.sectionTitle}>Work & Parts</Text>
+          </View>
+
+          <ActionCard
+            icon="wrench"
+            iconBg={[colors.primary, '#4361ee']}
+            title="Labor"
+            subtitle={laborCount > 0 ? `${laborCount} service${laborCount > 1 ? 's' : ''}` : 'Add labor charges'}
+            value={laborCount > 0 ? formatCurrency(totals.labor) : undefined}
+            onPress={() => setShowLaborSheet(true)}
+            showAdd={laborCount === 0}
+          />
+
+          {laborCount > 0 && (
+            <View style={styles.itemsContainer}>
+              {order.laborItems?.map((item, index) => (
+                <View key={item.id} style={[styles.itemRow, index === 0 && { borderTopWidth: 0 }]}>
+                  <View style={styles.itemDot} />
+                  <Text style={styles.itemName}>{item.description}</Text>
+                  <Text style={styles.itemPrice}>{formatCurrency(item.total)}</Text>
+                  <Pressable style={styles.itemDeleteBtn} onPress={() => handleDeleteLabor(item.id)} hitSlop={8}>
+                    <Icon source="close-circle" size={20} color={colors.systemGray3} />
+                  </Pressable>
+                </View>
+              ))}
+            </View>
+          )}
+
+          <ActionCard
+            icon="cog"
+            iconBg={['#f72585', '#b5179e']}
+            title="Parts"
+            subtitle={partsCount > 0 ? `${partsCount} part${partsCount > 1 ? 's' : ''}` : 'Add spare parts'}
+            value={partsCount > 0 ? formatCurrency(totals.parts) : undefined}
+            onPress={() => setShowPartsSheet(true)}
+            showAdd={partsCount === 0}
+          />
+
+          {partsCount > 0 && (
+            <View style={styles.itemsContainer}>
+              {order.spareParts?.map((item, index) => (
+                <View key={item.id} style={[styles.itemRow, index === 0 && { borderTopWidth: 0 }]}>
+                  <View style={[styles.itemDot, { backgroundColor: '#f72585' }]} />
+                  <Text style={styles.itemName}>
+                    {item.partName}
+                    {item.quantity > 1 && <Text style={styles.itemQty}> × {item.quantity}</Text>}
+                  </Text>
+                  <Text style={styles.itemPrice}>{formatCurrency(item.total)}</Text>
+                  <Pressable style={styles.itemDeleteBtn} onPress={() => handleDeletePart(item.id)} hitSlop={8}>
+                    <Icon source="close-circle" size={20} color={colors.systemGray3} />
+                  </Pressable>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* Payments */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Icon source="credit-card-outline" size={20} color={colors.textSecondary} />
+            <Text style={styles.sectionTitle}>Payments</Text>
+          </View>
+
+          <ActionCard
+            icon="cash"
+            iconBg={['#06d6a0', '#118ab2']}
+            title="Payment History"
+            subtitle={paymentCount > 0 ? `${paymentCount} payment${paymentCount > 1 ? 's' : ''}` : 'Record payment'}
+            value={paymentCount > 0 ? formatCurrency(totals.paid) : undefined}
+            onPress={() => router.push(`/(main)/orders/${id}/payment`)}
+            showAdd={paymentCount === 0}
+          />
+        </View>
+
+        {/* Status Update */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Icon source="flag-outline" size={20} color={colors.textSecondary} />
+            <Text style={styles.sectionTitle}>Update Status</Text>
+          </View>
+          <View style={styles.statusButtonsContainer}>
+            {(['pending', 'in_progress', 'completed'] as OrderStatus[]).map((s) => {
+              const isActive = order.status === s;
+              const statusColors = {
+                pending: { bg: colors.warningDim, color: colors.systemOrange, icon: 'clock-outline' },
+                in_progress: { bg: colors.primaryDim, color: colors.primary, icon: 'progress-wrench' },
+                completed: { bg: colors.successDim, color: colors.success, icon: 'check-circle-outline' },
+              };
+              const config = statusColors[s];
+
+              return (
+                <Pressable
+                  key={s}
+                  style={[
+                    styles.statusButton,
+                    isActive && { backgroundColor: config.color, borderColor: config.color },
+                  ]}
+                  onPress={() => updateStatus(s)}
+                >
+                  <Icon source={config.icon} size={20} color={isActive ? '#fff' : config.color} />
+                  <Text style={[styles.statusButtonText, isActive && { color: '#fff' }]}>
+                    {s === 'pending' ? 'Pending' : s === 'in_progress' ? 'In Progress' : 'Completed'}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
       </ScrollView>
+
+      {/* Bottom Bar */}
+      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}>
+        <View style={styles.bottomSummary}>
+          <View style={styles.summaryLeft}>
+            <Text style={styles.summaryLabel}>Balance Due</Text>
+            <Text style={[styles.summaryAmount, totals.due > 0 && { color: colors.error }]}>
+              {formatCurrency(totals.due)}
+            </Text>
+          </View>
+          <Pressable
+            style={styles.previewButton}
+            onPress={() => router.push(`/(main)/orders/${id}/preview`)}
+          >
+            <LinearGradient
+              colors={[colors.primary, '#4361ee']}
+              style={styles.previewButtonGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <Icon source="file-document-outline" size={20} color="#fff" />
+              <Text style={styles.previewButtonText}>Preview Receipt</Text>
+            </LinearGradient>
+          </Pressable>
+        </View>
+      </View>
+
+      {/* Labor Bottom Sheet */}
+      <BottomSheet visible={showLaborSheet} onClose={() => setShowLaborSheet(false)} title="Add Labor Service">
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Service Description</Text>
+          <TextInput
+            style={styles.sheetInput}
+            value={laborDesc}
+            onChangeText={setLaborDesc}
+            placeholder="e.g., Oil change, Brake service"
+            placeholderTextColor={colors.textTertiary}
+          />
+        </View>
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Amount</Text>
+          <View style={styles.amountInputContainer}>
+            <Text style={styles.currencySymbol}>₹</Text>
+            <TextInput
+              style={styles.amountField}
+              value={laborAmount}
+              onChangeText={(v) => setLaborAmount(v.replace(/\D/g, ''))}
+              placeholder="0"
+              placeholderTextColor={colors.textTertiary}
+              keyboardType="numeric"
+            />
+          </View>
+        </View>
+        <Pressable
+          style={[styles.sheetAddBtn, (!laborDesc || !laborAmount) && styles.sheetAddBtnDisabled]}
+          onPress={() => handleAddLabor(laborDesc, parseInt(laborAmount))}
+          disabled={!laborDesc || !laborAmount || isAdding}
+        >
+          {isAdding ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <>
+              <Icon source="plus" size={20} color="#fff" />
+              <Text style={styles.sheetAddBtnText}>Add Labor</Text>
+            </>
+          )}
+        </Pressable>
+      </BottomSheet>
+
+      {/* Parts Bottom Sheet */}
+      <BottomSheet visible={showPartsSheet} onClose={() => setShowPartsSheet(false)} title="Add Spare Part">
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Part Name</Text>
+          <TextInput
+            style={styles.sheetInput}
+            value={partName}
+            onChangeText={setPartName}
+            placeholder="e.g., Oil filter, Brake pads"
+            placeholderTextColor={colors.textTertiary}
+          />
+        </View>
+        <View style={styles.inputRow}>
+          <View style={[styles.inputGroup, { flex: 1 }]}>
+            <Text style={styles.inputLabel}>Unit Price</Text>
+            <View style={styles.amountInputContainer}>
+              <Text style={styles.currencySymbol}>₹</Text>
+              <TextInput
+                style={styles.amountField}
+                value={partPrice}
+                onChangeText={(v) => setPartPrice(v.replace(/\D/g, ''))}
+                placeholder="0"
+                placeholderTextColor={colors.textTertiary}
+                keyboardType="numeric"
+              />
+            </View>
+          </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Quantity</Text>
+            <View style={styles.qtyContainer}>
+              <Pressable
+                style={styles.qtyBtn}
+                onPress={() => setPartQty((q) => String(Math.max(1, parseInt(q) - 1)))}
+              >
+                <Icon source="minus" size={20} color={colors.primary} />
+              </Pressable>
+              <Text style={styles.qtyValue}>{partQty}</Text>
+              <Pressable
+                style={styles.qtyBtn}
+                onPress={() => setPartQty((q) => String(parseInt(q) + 1))}
+              >
+                <Icon source="plus" size={20} color={colors.primary} />
+              </Pressable>
+            </View>
+          </View>
+        </View>
+        <Pressable
+          style={[styles.sheetAddBtn, (!partName || !partPrice) && styles.sheetAddBtnDisabled]}
+          onPress={() => handleAddPart(partName, parseInt(partPrice), parseInt(partQty))}
+          disabled={!partName || !partPrice || isAdding}
+        >
+          {isAdding ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <>
+              <Icon source="plus" size={20} color="#fff" />
+              <Text style={styles.sheetAddBtnText}>Add Part</Text>
+            </>
+          )}
+        </Pressable>
+      </BottomSheet>
     </View>
   );
-}
+});
+
+export default OrderDetailScreen;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
-  },
-  scrollView: {
-    flex: 1,
+    backgroundColor: '#f8f9fa',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.background,
+    backgroundColor: '#f8f9fa',
   },
   loadingText: {
     marginTop: 12,
+    fontSize: 15,
     color: colors.textSecondary,
-    fontSize: 14,
   },
-  heroGradient: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
+  // Header
+  headerGradient: {
     paddingBottom: 24,
   },
-  statsContainer: {
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  backBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerLabel: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  menuBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuContent: {
+    backgroundColor: colors.surface,
+  },
+  vehicleSection: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  vehicleName: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  customerName: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.7)',
+    marginBottom: 16,
+  },
+  infoRow: {
     flexDirection: 'row',
     gap: 12,
   },
+  infoBox: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  infoLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.6)',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  infoValue: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+    gap: 16,
+  },
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  statusText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  dateText: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.6)',
+  },
+  scrollView: {
+    flex: 1,
+    marginTop: -12,
+  },
+  // Stats
+  statsContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    marginHorizontal: 16,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+  },
   statCard: {
     flex: 1,
-    backgroundColor: colors.surface,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    padding: 16,
     alignItems: 'center',
   },
   statValue: {
     fontSize: 18,
     fontWeight: '700',
     color: colors.textPrimary,
+    marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 4,
-  },
-  content: {
-    padding: 16,
-  },
-  sectionCard: {
-    marginBottom: 16,
-  },
-  sectionCardContent: {
-    padding: 16,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  orderDate: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  vehicleSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  vehicleIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: `${colors.primary}15`,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  vehicleInfo: {
-    marginLeft: 12,
-  },
-  vehicleName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  licensePlate: {
-    fontSize: 14,
-    color: colors.primary,
+    color: colors.textTertiary,
     fontWeight: '500',
   },
-  kmReading: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginTop: 2,
+  statDivider: {
+    width: 1,
+    backgroundColor: colors.separator,
+    marginHorizontal: 8,
   },
-  customerRow: {
+  // Description Card
+  descriptionCard: {
+    backgroundColor: '#fff',
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 14,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  descriptionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
   },
-  customerName: {
-    flex: 1,
+  descriptionTitle: {
     fontSize: 14,
+    fontWeight: '600',
     color: colors.textSecondary,
-    marginLeft: 8,
-  },
-  descriptionBox: {
-    marginTop: 12,
-    padding: 12,
-    backgroundColor: colors.surfaceVariant,
-    borderRadius: 12,
-  },
-  descriptionLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginBottom: 4,
   },
   descriptionText: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.textPrimary,
+    lineHeight: 22,
   },
-  notesBox: {
-    marginTop: 8,
-    padding: 12,
-    backgroundColor: `${colors.warning}10`,
-    borderRadius: 12,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.warning,
-  },
-  notesLabel: {
-    fontSize: 12,
-    color: colors.warning,
-    marginBottom: 4,
-  },
-  notesText: {
-    fontSize: 14,
-    color: colors.textPrimary,
+  // Section
+  section: {
+    marginTop: 24,
+    paddingHorizontal: 16,
   },
   sectionHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  divider: {
-    marginVertical: 8,
-    backgroundColor: colors.borderLight,
-  },
-  lineItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 4,
-  },
-  lineItemInfo: {
-    flex: 1,
-  },
-  lineItemName: {
-    fontSize: 14,
-    color: colors.textPrimary,
-    fontWeight: '500',
-  },
-  lineItemDetails: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  lineItemTotal: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  subtotalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.borderLight,
-  },
-  subtotalLabel: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  subtotalValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  billRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 4,
-  },
-  billLabel: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  billValue: {
-    fontSize: 14,
-    color: colors.textPrimary,
-  },
-  totalLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  totalValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  paidLabel: {
-    fontSize: 14,
-    color: colors.success,
-  },
-  paidValue: {
-    fontSize: 14,
-    color: colors.success,
-  },
-  balanceRow: {
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: colors.borderLight,
-  },
-  balanceLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  balanceValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.success,
-  },
-  balanceDueText: {
-    color: colors.error,
-  },
-  paymentItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 4,
-  },
-  paymentType: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.textPrimary,
-  },
-  paymentDetails: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  paymentAmount: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.success,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    paddingVertical: 16,
-  },
-  photosPreview: {
-    flexDirection: 'row',
+    marginBottom: 12,
     gap: 8,
   },
-  photoThumb: {
-    width: 60,
-    height: 60,
-    borderRadius: 12,
-    backgroundColor: colors.surfaceVariant,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  morePhotos: {
-    width: 60,
-    height: 60,
-    borderRadius: 12,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  morePhotosText: {
-    fontSize: 14,
+  sectionTitle: {
+    fontSize: 15,
     fontWeight: '600',
-    color: colors.textOnPrimary,
+    color: colors.textSecondary,
+    letterSpacing: 0.3,
   },
-  actionButtons: {
+  // Action Card
+  actionCard: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 32,
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  actionButton: {
+  actionCardPressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.99 }],
+  },
+  actionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionContent: {
     flex: 1,
+    marginLeft: 14,
   },
-  menuContent: {
-    backgroundColor: colors.surface,
-  },
-  menuItemText: {
+  actionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
     color: colors.textPrimary,
   },
-  menuDivider: {
-    backgroundColor: colors.borderLight,
+  actionSubtitle: {
+    fontSize: 13,
+    color: colors.textTertiary,
+    marginTop: 2,
+  },
+  actionValueContainer: {
+    backgroundColor: colors.surfaceSecondary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  actionValue: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  actionAddBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primaryDim,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 4,
+  },
+  // Items Container
+  itemsContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginBottom: 8,
+    marginLeft: 24,
+    paddingHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderTopWidth: 1,
+    borderTopColor: colors.separator,
+  },
+  itemDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.primary,
+    marginRight: 12,
+  },
+  itemName: {
+    flex: 1,
+    fontSize: 15,
+    color: colors.textPrimary,
+  },
+  itemQty: {
+    color: colors.textTertiary,
+    fontWeight: '500',
+  },
+  itemPrice: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    marginRight: 8,
+  },
+  itemDeleteBtn: {
+    padding: 4,
+  },
+  // Status Buttons
+  statusButtonsContainer: {
+    gap: 10,
+  },
+  statusButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: colors.separator,
+    gap: 10,
+  },
+  statusButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  // Bottom Bar
+  bottomBar: {
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: colors.separator,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  bottomSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  summaryLeft: {},
+  summaryLabel: {
+    fontSize: 13,
+    color: colors.textTertiary,
+    marginBottom: 2,
+  },
+  summaryAmount: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  previewButton: {
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  previewButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    gap: 10,
+  },
+  previewButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  // Bottom Sheet
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  bottomSheet: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+  },
+  sheetHandle: {
+    width: 40,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: colors.systemGray4,
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  sheetTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: 24,
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+  sheetInput: {
+    backgroundColor: colors.surfaceSecondary,
+    borderRadius: 14,
+    height: 52,
+    paddingHorizontal: 16,
+    fontSize: 16,
+    color: colors.textPrimary,
+    borderWidth: 1,
+    borderColor: colors.separator,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  amountInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surfaceSecondary,
+    borderRadius: 14,
+    height: 52,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: colors.separator,
+  },
+  currencySymbol: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginRight: 6,
+  },
+  amountField: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  qtyContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surfaceSecondary,
+    borderRadius: 14,
+    height: 52,
+    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderColor: colors.separator,
+  },
+  qtyBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: colors.primaryDim,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  qtyValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    minWidth: 40,
+    textAlign: 'center',
+  },
+  sheetAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    borderRadius: 14,
+    height: 56,
+    marginTop: 8,
+    gap: 10,
+  },
+  sheetAddBtnDisabled: {
+    backgroundColor: colors.systemGray4,
+  },
+  sheetAddBtnText: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#fff',
   },
 });

@@ -1,16 +1,22 @@
-import { useState } from 'react';
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { Text, IconButton } from 'react-native-paper';
-import { router } from 'expo-router';
+import { useState, useEffect } from 'react';
+import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { Text, ActivityIndicator } from 'react-native-paper';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { observer } from 'mobx-react-lite';
 import { Button, Input, TopBar } from '@presentation/components/common';
-import { useCreateCustomer } from '@presentation/viewmodels/useCustomers';
+import { useCustomerController } from '@views/hooks/useController';
+import { useCustomerStore } from '@views/hooks/useStore';
 import { colors } from '@theme/colors';
 import { isValidPhone, isValidEmail } from '@core/utils/validators';
 
-export default function NewCustomerScreen() {
+function NewCustomerScreen() {
+  const { id: editId } = useLocalSearchParams<{ id?: string }>();
+  const isEditMode = !!editId;
   const insets = useSafeAreaInsets();
-  const createCustomerMutation = useCreateCustomer();
+  const customerController = useCustomerController();
+  const customerStore = useCustomerStore();
+  const [isInitializing, setIsInitializing] = useState(isEditMode);
   const [form, setForm] = useState({
     name: '',
     phone: '',
@@ -18,6 +24,33 @@ export default function NewCustomerScreen() {
     address: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Load customer data for edit mode
+  useEffect(() => {
+    if (editId) {
+      loadCustomerData();
+    }
+  }, [editId]);
+
+  const loadCustomerData = async () => {
+    if (!editId) return;
+    try {
+      const customer = await customerController.fetchById(editId);
+      if (customer) {
+        setForm({
+          name: customer.name || '',
+          phone: customer.phone || '',
+          email: customer.email || '',
+          address: customer.address || '',
+        });
+      }
+    } catch (err) {
+      console.error('Failed to load customer:', err);
+      Alert.alert('Error', 'Failed to load customer data');
+    } finally {
+      setIsInitializing(false);
+    }
+  };
 
   const updateField = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -42,21 +75,39 @@ export default function NewCustomerScreen() {
   const handleSubmit = async () => {
     if (!validate()) return;
     try {
-      await createCustomerMutation.mutateAsync({
-        name: form.name,
-        phone: form.phone || undefined,
-        email: form.email || undefined,
-        address: form.address || undefined,
-      });
+      if (isEditMode && editId) {
+        await customerController.update(editId, {
+          name: form.name,
+          phone: form.phone || undefined,
+          email: form.email || undefined,
+          address: form.address || undefined,
+        });
+      } else {
+        await customerController.create({
+          name: form.name,
+          phone: form.phone || undefined,
+          email: form.email || undefined,
+          address: form.address || undefined,
+        });
+      }
       router.back();
     } catch (err) {
-      console.error('Failed to create customer:', err);
+      console.error('Failed to save customer:', err);
+      Alert.alert('Error', `Failed to ${isEditMode ? 'update' : 'create'} customer`);
     }
   };
 
+  if (isInitializing) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <TopBar title="New Customer" />
+      <TopBar title={isEditMode ? "Edit Customer" : "New Customer"} />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
         <ScrollView
           style={styles.scrollView}
@@ -72,7 +123,7 @@ export default function NewCustomerScreen() {
             placeholder="Enter customer name"
             autoCapitalize="words"
             error={errors.name}
-            left={<IconButton icon="account" size={20} />}
+            leftIcon="account"
           />
 
           <View style={styles.spacing} />
@@ -85,7 +136,7 @@ export default function NewCustomerScreen() {
             keyboardType="phone-pad"
             maxLength={10}
             error={errors.phone}
-            left={<IconButton icon="phone" size={20} />}
+            leftIcon="phone"
           />
 
           <View style={styles.spacing} />
@@ -98,7 +149,7 @@ export default function NewCustomerScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
             error={errors.email}
-            left={<IconButton icon="email" size={20} />}
+            leftIcon="email"
           />
 
           <View style={styles.spacing} />
@@ -110,16 +161,16 @@ export default function NewCustomerScreen() {
             placeholder="Full address"
             multiline
             numberOfLines={3}
-            left={<IconButton icon="map-marker" size={20} />}
+            leftIcon="map-marker"
           />
         </ScrollView>
 
-        <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
+        <View style={[styles.footer, { paddingBottom: insets.bottom + 80 }]}>
           <Button onPress={() => router.back()} mode="outlined" style={styles.footerButton}>
             Cancel
           </Button>
-          <Button onPress={handleSubmit} loading={createCustomerMutation.isPending} style={styles.footerButton}>
-            Add Customer
+          <Button onPress={handleSubmit} loading={customerStore.isLoading} style={styles.footerButton}>
+            {isEditMode ? 'Save Changes' : 'Add Customer'}
           </Button>
         </View>
       </KeyboardAvoidingView>
@@ -127,9 +178,17 @@ export default function NewCustomerScreen() {
   );
 }
 
+export default observer(NewCustomerScreen);
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: colors.background,
   },
   keyboardView: {

@@ -9,6 +9,11 @@ module.exports = function (api) {
           root: ['./'],
           alias: {
             '@': './src',
+            '@models': './src/models',
+            '@controllers': './src/controllers',
+            '@stores': './src/stores',
+            '@firebaseServices': './src/firebase',
+            '@views': './src/views',
             '@domain': './src/domain',
             '@data': './src/data',
             '@presentation': './src/presentation',

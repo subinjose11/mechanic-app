@@ -1,16 +1,19 @@
 import { useState } from 'react';
 import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { Text, IconButton } from 'react-native-paper';
+import { Text } from 'react-native-paper';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { observer } from 'mobx-react-lite';
 import { Button, Input } from '@presentation/components/common';
-import { useAuth } from '@presentation/viewmodels/useAuth';
+import { useAuthController } from '@views/hooks/useController';
+import { useAuthStore } from '@views/hooks/useStore';
 import { colors } from '@theme/colors';
 import { isValidPhone } from '@core/utils/validators';
 
-export default function ShopSetupScreen() {
-  const { updateShopProfile, isLoading, error, clearError, user } = useAuth();
+function ShopSetupScreen() {
+  const authController = useAuthController();
+  const authStore = useAuthStore();
   const [shopName, setShopName] = useState('');
   const [shopPhone, setShopPhone] = useState('');
   const [shopAddress, setShopAddress] = useState('');
@@ -46,18 +49,18 @@ export default function ShopSetupScreen() {
   };
 
   const handleSetup = async () => {
-    clearError();
+    authController.clearError();
     if (!validate()) return;
 
     try {
-      await updateShopProfile({
+      await authController.updateShopProfile({
         shopName: shopName.trim(),
         shopPhone: shopPhone.trim(),
         shopAddress: shopAddress.trim(),
       });
       router.replace('/(main)/home');
     } catch (err) {
-      // Error is handled by the auth context
+      // Error is handled by the controller
     }
   };
 
@@ -81,7 +84,7 @@ export default function ShopSetupScreen() {
         >
           <ScrollView
             contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
+            keyboardShouldPersistTaps="always"
             showsVerticalScrollIndicator={false}
           >
             {/* Logo */}
@@ -95,7 +98,7 @@ export default function ShopSetupScreen() {
             </View>
 
             {/* Welcome text */}
-            <Text style={styles.welcomeText}>Welcome, {user?.name || 'there'}!</Text>
+            <Text style={styles.welcomeText}>Welcome, {authStore.user?.name || 'there'}!</Text>
             <Text style={styles.tagline}>LET'S SET UP YOUR SHOP</Text>
 
             {/* Setup card */}
@@ -117,7 +120,7 @@ export default function ShopSetupScreen() {
                 placeholder="e.g., Kumar Auto Works"
                 autoCapitalize="words"
                 error={validationErrors.shopName}
-                left={<IconButton icon="store" size={20} iconColor={colors.textDisabled} />}
+                leftIcon="store"
               />
 
               <View style={styles.inputSpacing} />
@@ -135,7 +138,7 @@ export default function ShopSetupScreen() {
                 keyboardType="phone-pad"
                 maxLength={10}
                 error={validationErrors.shopPhone}
-                left={<IconButton icon="phone" size={20} iconColor={colors.textDisabled} />}
+                leftIcon="phone"
               />
 
               <View style={styles.inputSpacing} />
@@ -153,18 +156,18 @@ export default function ShopSetupScreen() {
                 multiline
                 numberOfLines={3}
                 error={validationErrors.shopAddress}
-                left={<IconButton icon="map-marker" size={20} iconColor={colors.textDisabled} />}
+                leftIcon="map-marker"
               />
 
-              {error && (
+              {authStore.error && (
                 <View style={styles.errorContainer}>
-                  <Text style={styles.errorText}>{error}</Text>
+                  <Text style={styles.errorText}>{authStore.error}</Text>
                 </View>
               )}
 
               <Button
                 onPress={handleSetup}
-                loading={isLoading}
+                loading={authStore.isLoading}
                 fullWidth
                 style={styles.button}
               >
@@ -181,6 +184,8 @@ export default function ShopSetupScreen() {
     </View>
   );
 }
+
+export default observer(ShopSetupScreen);
 
 const styles = StyleSheet.create({
   container: {

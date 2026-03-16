@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { Text, Chip, IconButton } from 'react-native-paper';
 import { router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Calendar, DateData } from 'react-native-calendars';
 import { Button, Input, Card, TopBar } from '@presentation/components/common';
+import { useExpenseController } from '@controllers';
 import { colors } from '@theme/colors';
 import { EXPENSE_CATEGORY_LABELS, ExpenseCategory } from '@core/constants';
 import { formatDate } from '@core/utils/formatDate';
@@ -19,6 +20,8 @@ const categoryColors: Record<ExpenseCategory, string> = {
 };
 
 export default function NewExpenseScreen() {
+  const insets = useSafeAreaInsets();
+  const expenseController = useExpenseController();
   const [isLoading, setIsLoading] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [form, setForm] = useState({
@@ -47,10 +50,16 @@ export default function NewExpenseScreen() {
     if (!validate()) return;
     setIsLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await expenseController.create({
+        category: form.category,
+        amount: parseFloat(form.amount),
+        description: form.description.trim() || undefined,
+        date: new Date(form.date),
+      });
       router.back();
     } catch (err) {
       console.error('Failed to add expense:', err);
+      Alert.alert('Error', 'Failed to add expense. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -100,7 +109,7 @@ export default function NewExpenseScreen() {
               placeholder="Enter amount"
               keyboardType="decimal-pad"
               error={errors.amount}
-              left={<IconButton icon="currency-inr" size={20} iconColor={colors.textSecondary} />}
+              leftIcon="currency-inr"
             />
           </Card>
 
@@ -155,7 +164,7 @@ export default function NewExpenseScreen() {
           </Card>
         </ScrollView>
 
-        <View style={styles.footer}>
+        <View style={[styles.footer, { paddingBottom: insets.bottom + 80 }]}>
           <Button onPress={() => router.back()} mode="outlined" style={styles.footerButton}>Cancel</Button>
           <Button onPress={handleSubmit} loading={isLoading} style={styles.footerButton}>Add Expense</Button>
         </View>

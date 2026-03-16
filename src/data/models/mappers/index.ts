@@ -1,9 +1,0 @@
-export { CustomerMapper } from './CustomerMapper';
-export { VehicleMapper } from './VehicleMapper';
-export { ServiceOrderMapper } from './ServiceOrderMapper';
-export { LaborItemMapper } from './LaborItemMapper';
-export { SparePartMapper } from './SparePartMapper';
-export { PaymentMapper } from './PaymentMapper';
-export { AppointmentMapper } from './AppointmentMapper';
-export { PhotoMapper } from './PhotoMapper';
-export { ExpenseMapper } from './ExpenseMapper';

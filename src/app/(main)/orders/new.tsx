@@ -1,21 +1,32 @@
 import { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Modal, FlatList } from 'react-native';
-import { Text, IconButton, Searchbar, ActivityIndicator } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Modal, FlatList, StatusBar, TextInput, Pressable } from 'react-native';
+import { Text, IconButton, ActivityIndicator, Icon } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Button, Input, Card, TopBar } from '@presentation/components/common';
-import { useVehicles, useVehicle } from '@presentation/viewmodels/useVehicles';
-import { useCreateOrder } from '@presentation/viewmodels/useOrders';
+import { observer } from 'mobx-react-lite';
+import { Button, Input, TopBar } from '@presentation/components/common';
+import { useVehicleStore, useUIStore } from '@stores';
+import { useVehicleController, useOrderController } from '@controllers';
 import { colors } from '@theme/colors';
 
-export default function NewOrderScreen() {
-  const { vehicleId: initialVehicleId } = useLocalSearchParams<{ vehicleId?: string }>();
+const NewOrderScreen = observer(function NewOrderScreen() {
+  const { vehicleId: initialVehicleId, customerId: initialCustomerId } = useLocalSearchParams<{ vehicleId?: string; customerId?: string }>();
   const [showVehiclePicker, setShowVehiclePicker] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const insets = useSafeAreaInsets();
 
-  const { data: vehicles, isLoading: loadingVehicles } = useVehicles();
-  const createOrderMutation = useCreateOrder();
+  const vehicleStore = useVehicleStore();
+  const uiStore = useUIStore();
+  const vehicleController = useVehicleController();
+  const orderController = useOrderController();
+
+  useEffect(() => {
+    vehicleController.fetchAll();
+  }, []);
+
+  const vehicles = vehicleStore.vehicles;
+  const loadingVehicles = uiStore.isLoading;
 
   const [form, setForm] = useState({
     vehicleId: initialVehicleId || '',
@@ -27,7 +38,6 @@ export default function NewOrderScreen() {
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Load selected vehicle details
   useEffect(() => {
     if (form.vehicleId && vehicles) {
       const vehicle = vehicles.find(v => v.id === form.vehicleId);
@@ -73,8 +83,9 @@ export default function NewOrderScreen() {
   const handleSubmit = async () => {
     if (!validate()) return;
 
+    setIsSubmitting(true);
     try {
-      await createOrderMutation.mutateAsync({
+      await orderController.create({
         vehicleId: form.vehicleId,
         customerId: selectedVehicle?.customerId || '',
         kmReading: form.kmReading ? parseInt(form.kmReading, 10) : undefined,
@@ -84,11 +95,14 @@ export default function NewOrderScreen() {
       router.replace('/(main)/orders');
     } catch (err) {
       console.error('Failed to create order:', err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
       <TopBar title="New Order" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -101,44 +115,44 @@ export default function NewOrderScreen() {
         >
           {/* Vehicle Selection */}
           <Text style={styles.sectionTitle}>SELECT VEHICLE</Text>
-          <View style={[styles.sectionCard, errors.vehicleId && styles.errorCard]}>
-            <TouchableOpacity
-              style={styles.selectionTouchable}
-              onPress={() => setShowVehiclePicker(true)}
-              activeOpacity={0.7}
-            >
-              {selectedVehicle ? (
-                <View style={styles.selectedItem}>
-                  <View style={styles.selectedIcon}>
-                    <IconButton icon="car" size={24} iconColor={colors.primary} />
-                  </View>
-                  <View style={styles.selectedInfo}>
-                    <Text style={styles.selectedTitle}>
-                      {selectedVehicle.make} {selectedVehicle.model} ({selectedVehicle.year})
-                    </Text>
-                    <Text style={styles.selectedSubtitle}>{selectedVehicle.licensePlate}</Text>
-                  </View>
-                  <IconButton
-                    icon="close"
-                    size={20}
-                    onPress={() => {
-                      updateField('vehicleId', '');
-                      setSelectedVehicle(null);
-                    }}
-                  />
+          <TouchableOpacity
+            style={[styles.sectionCard, errors.vehicleId && styles.errorCard]}
+            onPress={() => setShowVehiclePicker(true)}
+            activeOpacity={0.7}
+          >
+            {selectedVehicle ? (
+              <View style={styles.selectedItem}>
+                <View style={styles.selectedIcon}>
+                  <Icon source="car" size={24} color={colors.primary} />
                 </View>
-              ) : (
-                <View style={styles.placeholderItem}>
-                  <IconButton icon="car-search" size={32} iconColor={colors.textSecondary} />
-                  <Text style={styles.placeholderText}>Tap to select a vehicle</Text>
+                <View style={styles.selectedInfo}>
+                  <Text style={styles.selectedTitle}>
+                    {selectedVehicle.make} {selectedVehicle.model} ({selectedVehicle.year})
+                  </Text>
+                  <Text style={styles.selectedSubtitle}>{selectedVehicle.licensePlate}</Text>
                 </View>
-              )}
-            </TouchableOpacity>
-          </View>
+                <TouchableOpacity
+                  onPress={() => {
+                    updateField('vehicleId', '');
+                    setSelectedVehicle(null);
+                  }}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Icon source="close-circle" size={22} color={colors.systemGray3} />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.placeholderItem}>
+                <Icon source="car-search" size={32} color={colors.systemGray3} />
+                <Text style={styles.placeholderText}>Tap to select a vehicle</Text>
+                <Icon source="chevron-right" size={20} color={colors.systemGray3} />
+              </View>
+            )}
+          </TouchableOpacity>
           {errors.vehicleId && <Text style={styles.errorText}>{errors.vehicleId}</Text>}
 
           {/* KM Reading */}
-          <Text style={styles.sectionTitle}>KM READING</Text>
+          <Text style={styles.sectionTitle}>ODOMETER</Text>
           <View style={styles.sectionCard}>
             <Input
               label="Odometer Reading (KM)"
@@ -146,18 +160,18 @@ export default function NewOrderScreen() {
               onChangeText={(v) => updateField('kmReading', v.replace(/[^0-9]/g, ''))}
               placeholder="Enter current KM reading"
               keyboardType="numeric"
-              left={<IconButton icon="speedometer" size={20} iconColor={colors.textSecondary} />}
+              leftIcon="speedometer"
             />
           </View>
 
           {/* Description */}
-          <Text style={styles.sectionTitle}>WORK DESCRIPTION</Text>
+          <Text style={styles.sectionTitle}>SERVICE DETAILS</Text>
           <View style={styles.sectionCard}>
             <Input
-              label="Service Details"
+              label="Work Description"
               value={form.description}
               onChangeText={(v) => updateField('description', v)}
-              placeholder="Describe the work to be done (e.g., Oil change, Brake repair, etc.)"
+              placeholder="Describe the work to be done..."
               multiline
               numberOfLines={4}
             />
@@ -176,16 +190,14 @@ export default function NewOrderScreen() {
 
           {/* Info */}
           <View style={styles.infoCard}>
-            <View style={styles.infoRow}>
-              <IconButton icon="information" size={20} iconColor={colors.info} />
-              <Text style={styles.infoText}>
-                After creating the order, you can add labor charges and spare parts from the order details page.
-              </Text>
-            </View>
+            <Icon source="information" size={20} color={colors.primary} />
+            <Text style={styles.infoText}>
+              After creating the order, you can add labor charges and spare parts from the order details page.
+            </Text>
           </View>
         </ScrollView>
 
-        <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
+        <View style={[styles.footer, { paddingBottom: insets.bottom + 80 }]}>
           <Button
             onPress={() => router.back()}
             mode="outlined"
@@ -195,7 +207,7 @@ export default function NewOrderScreen() {
           </Button>
           <Button
             onPress={handleSubmit}
-            loading={createOrderMutation.isPending}
+            loading={isSubmitting}
             style={styles.footerButton}
           >
             Create Order
@@ -212,55 +224,89 @@ export default function NewOrderScreen() {
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Select Vehicle</Text>
-            <IconButton icon="close" onPress={() => setShowVehiclePicker(false)} />
+            <TouchableOpacity onPress={() => setShowVehiclePicker(false)}>
+              <Text style={styles.modalCancel}>Cancel</Text>
+            </TouchableOpacity>
           </View>
 
-          <Searchbar
-            placeholder="Search by plate, make, model..."
-            onChangeText={setSearchQuery}
-            value={searchQuery}
-            style={styles.modalSearchBar}
-            inputStyle={styles.modalSearchInput}
-            iconColor={colors.textSecondary}
-            placeholderTextColor={colors.textDisabled}
-          />
+          <View style={styles.modalSearchContainer}>
+            <View style={styles.modalSearchBar}>
+              <Icon source="magnify" size={20} color={colors.systemGray} />
+              <TextInput
+                style={styles.modalSearchInput}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="Search by plate, make, model..."
+                placeholderTextColor={colors.textTertiary}
+                autoCapitalize="characters"
+                autoCorrect={false}
+              />
+              {searchQuery.length > 0 && (
+                <Pressable onPress={() => setSearchQuery('')}>
+                  <Icon source="close-circle" size={18} color={colors.systemGray3} />
+                </Pressable>
+              )}
+            </View>
+            {/* Quick Add Option */}
+            <Pressable
+              style={styles.quickAddRow}
+              onPress={() => {
+                setShowVehiclePicker(false);
+                router.push(`/(main)/quick-add?plate=${encodeURIComponent(searchQuery)}&createOrder=true`);
+              }}
+            >
+              <View style={[styles.quickAddIcon, { backgroundColor: colors.successDim }]}>
+                <Icon source="plus" size={18} color={colors.success} />
+              </View>
+              <Text style={styles.quickAddText}>Quick Add New Customer + Vehicle</Text>
+              <Icon source="chevron-right" size={18} color={colors.systemGray} />
+            </Pressable>
+          </View>
 
           {loadingVehicles ? (
             <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
           ) : filteredVehicles.length === 0 ? (
             <View style={styles.emptyState}>
-              <IconButton icon="car-off" size={48} iconColor={colors.textDisabled} />
-              <Text style={styles.emptyText}>No vehicles found</Text>
+              <Icon source="car-off" size={48} color={colors.systemGray3} />
+              <Text style={styles.emptyText}>
+                {searchQuery ? `No vehicles matching "${searchQuery}"` : 'No vehicles found'}
+              </Text>
+              <Text style={styles.emptySubtext}>Add a new customer and vehicle</Text>
               <Button
-                mode="outlined"
+                mode="contained"
                 onPress={() => {
                   setShowVehiclePicker(false);
-                  router.push('/(main)/vehicles/new');
+                  router.push(`/(main)/quick-add?plate=${encodeURIComponent(searchQuery)}&createOrder=true`);
                 }}
                 style={styles.addButton}
+                icon="plus"
               >
-                Add New Vehicle
+                Quick Add
               </Button>
             </View>
           ) : (
             <FlatList
               data={filteredVehicles}
               keyExtractor={(item) => item.id}
+              keyboardShouldPersistTaps="handled"
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={styles.vehicleItem}
                   onPress={() => selectVehicle(item)}
                 >
                   <View style={styles.vehicleIcon}>
-                    <IconButton icon="car" size={24} iconColor={colors.primary} />
+                    <Icon source="car" size={24} color={colors.primary} />
                   </View>
                   <View style={styles.vehicleInfo}>
-                    <Text style={styles.vehicleTitle}>
-                      {item.make} {item.model} ({item.year})
-                    </Text>
                     <Text style={styles.vehiclePlate}>{item.licensePlate}</Text>
+                    <Text style={styles.vehicleTitle}>
+                      {item.make} {item.model}{item.year ? ` (${item.year})` : ''}
+                    </Text>
+                    {item.customerName && (
+                      <Text style={styles.vehicleCustomer}>{item.customerName}</Text>
+                    )}
                   </View>
-                  <IconButton icon="chevron-right" size={20} iconColor={colors.textDisabled} />
+                  <Icon source="chevron-right" size={20} color={colors.systemGray3} />
                 </TouchableOpacity>
               )}
               ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -270,12 +316,14 @@ export default function NewOrderScreen() {
       </Modal>
     </View>
   );
-}
+});
+
+export default NewOrderScreen;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.surfaceSecondary,
   },
   keyboardView: {
     flex: 1,
@@ -287,26 +335,21 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   sectionTitle: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.textDisabled,
-    letterSpacing: 1.5,
+    fontSize: 13,
+    fontWeight: '500',
+    color: colors.textSecondary,
+    letterSpacing: 0.3,
     marginTop: 20,
-    marginBottom: 12,
-    marginLeft: 4,
+    marginBottom: 8,
+    marginLeft: 16,
   },
   sectionCard: {
     backgroundColor: colors.surface,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    padding: 16,
-  },
-  selectionTouchable: {
-    margin: -16,
+    borderRadius: 12,
     padding: 16,
   },
   errorCard: {
+    borderWidth: 1,
     borderColor: colors.error,
   },
   selectedItem: {
@@ -316,7 +359,7 @@ const styles = StyleSheet.create({
   selectedIcon: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: 12,
     backgroundColor: colors.primaryDim,
     justifyContent: 'center',
     alignItems: 'center',
@@ -326,59 +369,58 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   selectedTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '600',
     color: colors.textPrimary,
   },
   selectedSubtitle: {
-    fontSize: 14,
-    color: colors.secondary,
+    fontSize: 15,
+    color: colors.primary,
     marginTop: 2,
     fontWeight: '500',
   },
   placeholderItem: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: 8,
   },
   placeholderText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginTop: 8,
+    flex: 1,
+    fontSize: 17,
+    color: colors.textTertiary,
+    marginLeft: 12,
   },
   errorText: {
-    fontSize: 12,
+    fontSize: 13,
     color: colors.error,
-    marginTop: 4,
-    marginLeft: 4,
+    marginTop: 6,
+    marginLeft: 16,
   },
   spacing: {
     height: 16,
   },
   infoCard: {
     marginTop: 24,
-    backgroundColor: colors.infoDim,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+    backgroundColor: colors.primaryDim,
+    borderRadius: 12,
     padding: 16,
-  },
-  infoRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
+    gap: 12,
   },
   infoText: {
     flex: 1,
-    fontSize: 13,
+    fontSize: 15,
     color: colors.textSecondary,
-    lineHeight: 18,
+    lineHeight: 20,
   },
   footer: {
     flexDirection: 'row',
     gap: 12,
     padding: 16,
     backgroundColor: colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: colors.borderLight,
+    borderTopWidth: 0.5,
+    borderTopColor: colors.separator,
   },
   footerButton: {
     flex: 1,
@@ -386,30 +428,66 @@ const styles = StyleSheet.create({
   // Modal styles
   modalContainer: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.surfaceSecondary,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
+    paddingVertical: 12,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 0.5,
+    borderBottomColor: colors.separator,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '600',
     color: colors.textPrimary,
   },
-  modalSearchBar: {
-    margin: 16,
+  modalCancel: {
+    fontSize: 17,
+    color: colors.primary,
+  },
+  modalSearchContainer: {
+    padding: 16,
     backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+  },
+  modalSearchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surfaceSecondary,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 40,
+    gap: 8,
   },
   modalSearchInput: {
+    flex: 1,
+    fontSize: 16,
     color: colors.textPrimary,
+    letterSpacing: 0.5,
+  },
+  quickAddRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    gap: 10,
+  },
+  quickAddIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickAddText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '500',
+    color: colors.success,
   },
   loader: {
     marginTop: 40,
@@ -419,12 +497,19 @@ const styles = StyleSheet.create({
     paddingTop: 60,
   },
   emptyText: {
-    fontSize: 16,
-    color: colors.textSecondary,
+    fontSize: 17,
+    fontWeight: '600',
+    color: colors.textPrimary,
     marginTop: 12,
+    textAlign: 'center',
+  },
+  emptySubtext: {
+    fontSize: 15,
+    color: colors.textSecondary,
+    marginTop: 4,
   },
   addButton: {
-    marginTop: 16,
+    marginTop: 20,
   },
   vehicleItem: {
     flexDirection: 'row',
@@ -435,7 +520,7 @@ const styles = StyleSheet.create({
   vehicleIcon: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: 12,
     backgroundColor: colors.primaryDim,
     justifyContent: 'center',
     alignItems: 'center',
@@ -444,18 +529,26 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 12,
   },
-  vehicleTitle: {
-    fontSize: 16,
+  vehiclePlate: {
+    fontSize: 17,
     fontWeight: '600',
     color: colors.textPrimary,
+    letterSpacing: 0.5,
   },
-  vehiclePlate: {
+  vehicleTitle: {
     fontSize: 14,
     color: colors.textSecondary,
     marginTop: 2,
   },
+  vehicleCustomer: {
+    fontSize: 13,
+    color: colors.primary,
+    marginTop: 2,
+    fontWeight: '500',
+  },
   separator: {
-    height: 1,
-    backgroundColor: colors.borderLight,
+    height: 0.5,
+    backgroundColor: colors.separator,
+    marginLeft: 76,
   },
 });

@@ -1,90 +1,116 @@
 import { ViewStyle } from 'react-native';
 
-// Glass hierarchy levels
+// Apple-style card styles (replacing glass effects)
 export const glass = {
-  // Base level - subtle glass for backgrounds
+  // Base level - subtle for backgrounds
   base: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
-    blurIntensity: 20,
-    blurTint: 'dark' as const,
+    backgroundColor: '#F2F2F7',
+    borderWidth: 0,
+    borderColor: 'transparent',
+    blurIntensity: 0,
+    blurTint: 'light' as const,
   },
 
-  // Card level - standard cards
+  // Card level - standard cards with subtle shadow
   card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 20,
-    blurIntensity: 30,
-    blurTint: 'dark' as const,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 0,
+    borderColor: 'transparent',
+    borderRadius: 12,
+    blurIntensity: 0,
+    blurTint: 'light' as const,
   },
 
   // Elevated level - floating elements
   elevated: {
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.10)',
-    borderRadius: 22,
-    blurIntensity: 40,
-    blurTint: 'dark' as const,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 0,
+    borderColor: 'transparent',
+    borderRadius: 14,
+    blurIntensity: 0,
+    blurTint: 'light' as const,
   },
 
   // Modal level - modals and sheets
   modal: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    borderRadius: 26,
-    blurIntensity: 60,
-    blurTint: 'dark' as const,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 0,
+    borderColor: 'transparent',
+    borderRadius: 16,
+    blurIntensity: 0,
+    blurTint: 'light' as const,
   },
 
   // Tab bar level - navigation tab bar
   tabBar: {
-    backgroundColor: 'rgba(8, 8, 12, 0.85)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
-    blurIntensity: 50,
-    blurTint: 'dark' as const,
+    backgroundColor: 'rgba(249,249,249,0.94)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(0,0,0,0.1)',
+    blurIntensity: 25,
+    blurTint: 'light' as const,
   },
 } as const;
 
-// Style objects without blur (for use in StyleSheet)
+// Style objects for use in StyleSheet
 export const glassStyles = {
   base: {
     backgroundColor: glass.base.backgroundColor,
-    borderWidth: glass.base.borderWidth,
-    borderColor: glass.base.borderColor,
   } as ViewStyle,
 
   card: {
     backgroundColor: glass.card.backgroundColor,
-    borderWidth: glass.card.borderWidth,
-    borderColor: glass.card.borderColor,
     borderRadius: glass.card.borderRadius,
   } as ViewStyle,
 
   elevated: {
     backgroundColor: glass.elevated.backgroundColor,
-    borderWidth: glass.elevated.borderWidth,
-    borderColor: glass.elevated.borderColor,
     borderRadius: glass.elevated.borderRadius,
   } as ViewStyle,
 
   modal: {
     backgroundColor: glass.modal.backgroundColor,
-    borderWidth: glass.modal.borderWidth,
-    borderColor: glass.modal.borderColor,
     borderRadius: glass.modal.borderRadius,
   } as ViewStyle,
 
   tabBar: {
     backgroundColor: glass.tabBar.backgroundColor,
-    borderWidth: glass.tabBar.borderWidth,
-    borderColor: glass.tabBar.borderColor,
+    borderTopWidth: glass.tabBar.borderWidth,
+    borderTopColor: glass.tabBar.borderColor,
   } as ViewStyle,
 } as const;
+
+// Card styles with shadows (Apple-style)
+export const cardStyles = {
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  } as ViewStyle,
+
+  cardElevated: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  } as ViewStyle,
+
+  groupedCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+  } as ViewStyle,
+
+  insetGrouped: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    marginHorizontal: 16,
+  } as ViewStyle,
+};
 
 export type GlassLevel = keyof typeof glass;

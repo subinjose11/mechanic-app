@@ -1,39 +1,40 @@
 import { useState, useCallback } from 'react';
-import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
-import { Text, Searchbar, FAB, Icon, ActivityIndicator } from 'react-native-paper';
+import { View, StyleSheet, FlatList, RefreshControl, StatusBar, TextInput, Pressable } from 'react-native';
+import { Text, FAB, Icon, ActivityIndicator } from 'react-native-paper';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { observer } from 'mobx-react-lite';
 import { GlassCard, AnimatedListItem, EmptyState } from '@presentation/components/common';
-import { useCustomers } from '@presentation/viewmodels/useCustomers';
-import { useVehicles } from '@presentation/viewmodels/useVehicles';
+import { useCustomerStore, useVehicleStore, useAuthStore } from '@views/hooks/useStore';
 import { colors } from '@theme/colors';
 import { shadows } from '@theme/shadows';
-import { Customer } from '@domain/entities/Customer';
+import { Customer } from '@models/Customer';
 
-export default function CustomersScreen() {
+function CustomersScreen() {
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
-  const { data: customers, isLoading, refetch } = useCustomers();
-  const { data: vehicles } = useVehicles();
+  const authStore = useAuthStore();
+  const customerStore = useCustomerStore();
+  const vehicleStore = useVehicleStore();
 
   const getVehicleCount = (customerId: string): number => {
-    return vehicles?.filter(v => v.customerId === customerId).length || 0;
+    return vehicleStore.getByCustomerId(customerId).length;
   };
 
-  const filteredCustomers = (customers || []).filter(
-    (customer) =>
-      !searchQuery ||
-      customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (customer.phone && customer.phone.includes(searchQuery))
-  );
+  const filteredCustomers = searchQuery
+    ? customerStore.search(searchQuery)
+    : customerStore.sortedCustomers;
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await refetch();
+    const userId = authStore.userId;
+    if (userId) {
+      await customerStore.fetchAll(userId);
+    }
     setRefreshing(false);
-  }, [refetch]);
+  }, [authStore.userId]);
 
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -59,9 +60,10 @@ export default function CustomersScreen() {
     </AnimatedListItem>
   );
 
-  if (isLoading && !refreshing) {
+  if (customerStore.isLoading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
+        <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Loading customers...</Text>
       </View>
@@ -69,22 +71,28 @@ export default function CustomersScreen() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Customers</Text>
-        <Text style={styles.headerCount}>{filteredCustomers.length} total</Text>
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <Pressable style={styles.backButton} onPress={() => router.replace('/(main)/home')}>
+          <Icon source="arrow-left" size={24} color={colors.textPrimary} />
+        </Pressable>
+        <View style={styles.headerTitleContainer}>
+          <Text style={styles.headerTitle}>Customers</Text>
+          <Text style={styles.headerCount}>{filteredCustomers.length} total</Text>
+        </View>
       </View>
 
-      <View style={styles.searchWrap}>
-        <View style={styles.searchRow}>
-          <Icon source="magnify" size={18} color={colors.textDisabled} />
-          <Searchbar
+      <View style={styles.searchContainer}>
+        <View style={styles.searchBar}>
+          <Icon source="magnify" size={20} color={colors.systemGray} />
+          <TextInput
             placeholder="Search by name or phone..."
-            onChangeText={setSearchQuery}
+            placeholderTextColor={colors.textPlaceholder}
             value={searchQuery}
-            style={styles.searchBar}
-            inputStyle={styles.searchInput}
-            iconColor="transparent"
+            onChangeText={setSearchQuery}
+            style={styles.searchInput}
           />
         </View>
       </View>
@@ -110,132 +118,136 @@ export default function CustomersScreen() {
 
       <FAB
         icon="plus"
-        style={[styles.fab, { bottom: 16 + insets.bottom }]}
+        style={[styles.fab, shadows.glow, { bottom: 16 + insets.bottom }]}
         onPress={() => router.push('/(main)/customers/new')}
         color={colors.textOnPrimary}
-        customSize={52}
       />
     </View>
   );
 }
 
+export default observer(CustomersScreen);
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.surfaceSecondary,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.background,
+    backgroundColor: colors.surfaceSecondary,
   },
   loadingText: {
     marginTop: 12,
     color: colors.textSecondary,
-    fontSize: 14,
+    fontSize: 15,
   },
   header: {
-    paddingHorizontal: 18,
-    paddingTop: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
     paddingBottom: 12,
+    backgroundColor: colors.background,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.systemGray6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  headerTitleContainer: {
+    flex: 1,
   },
   headerTitle: {
     fontSize: 28,
-    fontWeight: '800',
+    fontWeight: '700',
     color: colors.textPrimary,
-    letterSpacing: -0.5,
   },
   headerCount: {
-    fontSize: 13,
-    color: colors.textDisabled,
-    marginTop: 4,
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
-  searchWrap: {
-    paddingHorizontal: 18,
-    marginBottom: 8,
-  },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: colors.surface,
-    borderWidth: 1.5,
-    borderColor: colors.borderLight,
-    borderRadius: 14,
-    paddingLeft: 14,
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    backgroundColor: colors.background,
   },
   searchBar: {
-    flex: 1,
-    backgroundColor: 'transparent',
-    elevation: 0,
-    shadowOpacity: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surfaceSecondary,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 36,
+    gap: 8,
   },
   searchInput: {
-    fontSize: 15,
+    flex: 1,
+    fontSize: 17,
     color: colors.textPrimary,
+    padding: 0,
   },
   listContent: {
-    padding: 18,
+    padding: 16,
     paddingTop: 8,
   },
   card: {
-    marginBottom: 8,
+    marginBottom: 10,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 13,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: colors.primaryDim,
-    borderWidth: 1,
-    borderColor: colors.primaryBorder,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.primaryLight,
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.primary,
   },
   info: {
     flex: 1,
     marginLeft: 12,
   },
   name: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 17,
+    fontWeight: '600',
     color: colors.textPrimary,
   },
   phone: {
-    fontSize: 13,
+    fontSize: 15,
     color: colors.textSecondary,
     marginTop: 2,
   },
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surfaceElevated,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+    backgroundColor: colors.systemGray6,
     paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    gap: 4,
   },
   badgeText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
     color: colors.textSecondary,
-    marginLeft: 5,
   },
   fab: {
     position: 'absolute',
     right: 16,
-    borderRadius: 16,
     backgroundColor: colors.primary,
-    ...shadows.glow,
   },
 });

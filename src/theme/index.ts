@@ -1,23 +1,23 @@
-import { MD3DarkTheme } from 'react-native-paper';
+import { MD3LightTheme } from 'react-native-paper';
 import { colors } from './colors';
 import { typography } from './typography';
 import { shadows } from './shadows';
 import { animations } from './animations';
-import { glass, glassStyles } from './glass';
+import { glass, glassStyles, cardStyles } from './glass';
 
 export const theme = {
-  ...MD3DarkTheme,
-  dark: true,
+  ...MD3LightTheme,
+  dark: false,
   colors: {
-    ...MD3DarkTheme.colors,
+    ...MD3LightTheme.colors,
     primary: colors.primary,
     primaryContainer: colors.primaryDim,
     secondary: colors.secondary,
     secondaryContainer: colors.secondaryDim,
     background: colors.background,
-    surface: colors.surfaceSolid,
-    surfaceVariant: colors.surfaceVariantSolid,
-    surfaceDisabled: colors.surfaceElevatedSolid,
+    surface: colors.surface,
+    surfaceVariant: colors.surfaceVariant,
+    surfaceDisabled: colors.systemGray6,
     error: colors.error,
     errorContainer: colors.errorDim,
     onPrimary: colors.textOnPrimary,
@@ -26,37 +26,37 @@ export const theme = {
     onSurface: colors.textPrimary,
     onSurfaceVariant: colors.textSecondary,
     onSurfaceDisabled: colors.textDisabled,
-    outline: colors.borderMedium,
+    outline: colors.border,
     outlineVariant: colors.borderLight,
     elevation: {
       level0: 'transparent',
-      level1: colors.surfaceSolid,
-      level2: colors.surfaceVariantSolid,
-      level3: colors.surfaceElevatedSolid,
-      level4: colors.surfaceElevatedSolid,
-      level5: colors.surfaceElevatedSolid,
+      level1: colors.surface,
+      level2: colors.surface,
+      level3: colors.surface,
+      level4: colors.surface,
+      level5: colors.surface,
     },
   },
-  roundness: 14,
+  roundness: 12,
 };
 
 export const spacing = {
   xs: 4,
   sm: 8,
-  md: 18,
-  lg: 28,
-  xl: 36,
-  xxl: 52,
+  md: 16,
+  lg: 24,
+  xl: 32,
+  xxl: 48,
 } as const;
 
 export const borderRadius = {
-  sm: 10,
-  md: 14,
-  lg: 18,
-  xl: 22,
-  xxl: 26,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  xxl: 24,
   round: 9999,
 } as const;
 
-export { colors, typography, shadows, animations, glass, glassStyles };
+export { colors, typography, shadows, animations, glass, glassStyles, cardStyles };
 export type AppTheme = typeof theme;
