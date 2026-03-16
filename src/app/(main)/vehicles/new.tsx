@@ -12,8 +12,9 @@ import { isValidLicensePlate, isValidVIN, isValidYear } from '@core/utils/valida
 import { Customer } from '@models';
 
 const NewVehicleScreen = observer(function NewVehicleScreen() {
-  const { customerId: initialCustomerId, id: editId } = useLocalSearchParams<{ customerId?: string; id?: string }>();
+  const { customerId: initialCustomerId, id: editId, fromCreateOrder } = useLocalSearchParams<{ customerId?: string; id?: string; fromCreateOrder?: string }>();
   const isEditMode = !!editId;
+  const isFromCreateOrder = fromCreateOrder === 'true';
   const [showCustomerPicker, setShowCustomerPicker] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -156,10 +157,17 @@ const NewVehicleScreen = observer(function NewVehicleScreen() {
 
       if (isEditMode && editId) {
         await vehicleController.update(editId, vehicleData);
+        router.back();
       } else {
-        await vehicleController.create(vehicleData);
+        const newVehicle = await vehicleController.create(vehicleData);
+
+        if (isFromCreateOrder && newVehicle) {
+          // Navigate back to create order with the new vehicle and customer selected
+          router.replace(`/create-order?vehicleId=${newVehicle.id}&customerId=${form.customerId}`);
+        } else {
+          router.back();
+        }
       }
-      router.back();
     } catch (err) {
       console.error('Failed to save vehicle:', err);
       Alert.alert('Error', `Failed to ${isEditMode ? 'update' : 'create'} vehicle`);

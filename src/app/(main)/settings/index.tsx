@@ -44,6 +44,46 @@ function SettingsScreen() {
     );
   };
 
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to delete your account? This will permanently delete all your data including customers, vehicles, orders, expenses, and appointments. This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Account',
+          style: 'destructive',
+          onPress: () => {
+            // Second confirmation for safety
+            Alert.alert(
+              'Final Confirmation',
+              'Type DELETE to confirm account deletion.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Delete Forever',
+                  style: 'destructive',
+                  onPress: async () => {
+                    try {
+                      await authController.deleteAccount();
+                      router.replace('/(auth)/login');
+                    } catch (err) {
+                      console.error('Failed to delete account:', err);
+                      Alert.alert(
+                        'Error',
+                        'Failed to delete account. You may need to re-authenticate. Please log out and log in again, then try deleting.'
+                      );
+                    }
+                  },
+                },
+              ]
+            );
+          },
+        },
+      ]
+    );
+  };
+
   const settingSections: { title?: string; items: SettingItem[] }[] = [
     {
       title: 'Shop',
@@ -112,6 +152,19 @@ function SettingsScreen() {
           iconBg: colors.errorDim,
           label: 'Log Out',
           onPress: handleLogout,
+          danger: true,
+        },
+      ],
+    },
+    {
+      title: 'Danger Zone',
+      items: [
+        {
+          icon: 'delete-forever',
+          iconColor: colors.error,
+          iconBg: colors.errorDim,
+          label: 'Delete Account',
+          onPress: handleDeleteAccount,
           danger: true,
         },
       ],

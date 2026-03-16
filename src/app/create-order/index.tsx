@@ -747,7 +747,7 @@ const CreateOrderScreen = observer(function CreateOrderScreen() {
               style={styles.addNewRow}
               onPress={() => {
                 setShowCustomerPicker(false);
-                router.push('/(main)/customers/new');
+                router.push('/(main)/customers/new?fromCreateOrder=true');
               }}
             >
               <View style={[styles.addNewIcon, { backgroundColor: colors.successDim }]}>
@@ -833,8 +833,8 @@ const CreateOrderScreen = observer(function CreateOrderScreen() {
                 setShowVehiclePicker(false);
                 router.push(
                   selectedCustomer
-                    ? `/(main)/vehicles/new?customerId=${selectedCustomer.id}`
-                    : '/(main)/vehicles/new'
+                    ? `/(main)/vehicles/new?customerId=${selectedCustomer.id}&fromCreateOrder=true`
+                    : '/(main)/vehicles/new?fromCreateOrder=true'
                 );
               }}
             >

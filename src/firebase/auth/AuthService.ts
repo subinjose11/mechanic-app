@@ -242,6 +242,79 @@ class AuthService {
     if (!user) return false;
     return !!(user.shopName && user.shopPhone && user.shopAddress);
   }
+
+  // Delete user account and all associated data
+  async deleteAccount(userId: string): Promise<void> {
+    const db = firestore();
+    const batch = db.batch();
+
+    // Helper to delete collection documents for a user
+    const deleteCollectionForUser = async (collectionName: string): Promise<void> => {
+      const snapshot = await db
+        .collection(collectionName)
+        .where('userId', '==', userId)
+        .get();
+
+      // For orders, we need to delete subcollections first
+      if (collectionName === COLLECTIONS.ORDERS) {
+        for (const doc of snapshot.docs) {
+          // Delete labor items subcollection
+          const laborItems = await db
+            .collection(COLLECTIONS.ORDERS)
+            .doc(doc.id)
+            .collection(COLLECTIONS.LABOR_ITEMS)
+            .get();
+          laborItems.docs.forEach((item) => batch.delete(item.ref));
+
+          // Delete spare parts subcollection
+          const spareParts = await db
+            .collection(COLLECTIONS.ORDERS)
+            .doc(doc.id)
+            .collection(COLLECTIONS.SPARE_PARTS)
+            .get();
+          spareParts.docs.forEach((item) => batch.delete(item.ref));
+
+          // Delete payments subcollection
+          const payments = await db
+            .collection(COLLECTIONS.ORDERS)
+            .doc(doc.id)
+            .collection(COLLECTIONS.PAYMENTS)
+            .get();
+          payments.docs.forEach((item) => batch.delete(item.ref));
+
+          // Delete photos subcollection
+          const photos = await db
+            .collection(COLLECTIONS.ORDERS)
+            .doc(doc.id)
+            .collection(COLLECTIONS.PHOTOS)
+            .get();
+          photos.docs.forEach((item) => batch.delete(item.ref));
+        }
+      }
+
+      // Delete main documents
+      snapshot.docs.forEach((doc) => batch.delete(doc.ref));
+    };
+
+    // Delete all user data from collections
+    await deleteCollectionForUser(COLLECTIONS.ORDERS);
+    await deleteCollectionForUser(COLLECTIONS.CUSTOMERS);
+    await deleteCollectionForUser(COLLECTIONS.VEHICLES);
+    await deleteCollectionForUser(COLLECTIONS.EXPENSES);
+    await deleteCollectionForUser(COLLECTIONS.APPOINTMENTS);
+
+    // Delete user document
+    batch.delete(db.collection(COLLECTIONS.USERS).doc(userId));
+
+    // Commit all deletions
+    await batch.commit();
+
+    // Delete Firebase Auth user
+    const currentUser = auth().currentUser;
+    if (currentUser && currentUser.uid === userId) {
+      await currentUser.delete();
+    }
+  }
 }
 
 // Export singleton instance

@@ -11,8 +11,9 @@ import { colors } from '@theme/colors';
 import { isValidPhone, isValidEmail } from '@core/utils/validators';
 
 function NewCustomerScreen() {
-  const { id: editId } = useLocalSearchParams<{ id?: string }>();
+  const { id: editId, fromCreateOrder } = useLocalSearchParams<{ id?: string; fromCreateOrder?: string }>();
   const isEditMode = !!editId;
+  const isFromCreateOrder = fromCreateOrder === 'true';
   const insets = useSafeAreaInsets();
   const customerController = useCustomerController();
   const customerStore = useCustomerStore();
@@ -82,15 +83,22 @@ function NewCustomerScreen() {
           email: form.email || undefined,
           address: form.address || undefined,
         });
+        router.back();
       } else {
-        await customerController.create({
+        const newCustomer = await customerController.create({
           name: form.name,
           phone: form.phone || undefined,
           email: form.email || undefined,
           address: form.address || undefined,
         });
+
+        if (isFromCreateOrder && newCustomer) {
+          // Navigate back to create order with the new customer selected
+          router.replace(`/create-order?customerId=${newCustomer.id}`);
+        } else {
+          router.back();
+        }
       }
-      router.back();
     } catch (err) {
       console.error('Failed to save customer:', err);
       Alert.alert('Error', `Failed to ${isEditMode ? 'update' : 'create'} customer`);

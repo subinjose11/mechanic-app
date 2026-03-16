@@ -99,6 +99,23 @@ class AuthController {
     }
   }
 
+  // Delete account and all user data
+  async deleteAccount(): Promise<void> {
+    uiStore.startOperation('auth-delete');
+    try {
+      // Reset all stores before deletion
+      rootStore.resetAll();
+      await authStore.deleteAccount();
+      uiStore.showToast('info', 'Account deleted successfully');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Account deletion failed';
+      uiStore.showToast('error', message);
+      throw error;
+    } finally {
+      uiStore.endOperation('auth-delete');
+    }
+  }
+
   // Update shop profile
   async updateShopProfile(profile: ShopProfile): Promise<void> {
     uiStore.startOperation('auth-shop-profile');

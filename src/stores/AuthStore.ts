@@ -170,6 +170,33 @@ class AuthStore {
     }
   }
 
+  // Delete account and all user data
+  async deleteAccount(): Promise<void> {
+    if (!this.user) throw new Error('No user logged in');
+
+    this.status = 'loading';
+
+    try {
+      // Delete all user data and Firebase Auth account
+      await authService.deleteAccount(this.user.id);
+
+      // Also sign out from Google if needed
+      await googleAuthService.signOut();
+
+      runInAction(() => {
+        this.user = null;
+        this.status = 'unauthenticated';
+        this.error = null;
+      });
+    } catch (err) {
+      runInAction(() => {
+        this.error = err instanceof Error ? err.message : 'Account deletion failed';
+        this.status = 'authenticated'; // Revert to authenticated if deletion fails
+      });
+      throw err;
+    }
+  }
+
   // Update shop profile
   async updateShopProfile(shopName: string, shopPhone: string, shopAddress: string): Promise<void> {
     if (!this.user) throw new Error('No user logged in');
