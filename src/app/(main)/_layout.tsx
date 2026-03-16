@@ -1,107 +1,81 @@
-import { Tabs } from 'expo-router';
+import { Tabs, router } from 'expo-router';
 import { View, StyleSheet, Platform } from 'react-native';
 import { Icon } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { colors } from '@theme/colors';
-import { glass } from '@theme/glass';
 
 export default function MainLayout() {
   const insets = useSafeAreaInsets();
 
-  // Calculate bottom padding for Android navigation bar
-  const bottomPadding = Platform.OS === 'android' ? Math.max(insets.bottom, 10) : insets.bottom;
-
-  const tabBarConfig = glass.tabBar;
+  const bottomPadding = Platform.OS === 'android' ? Math.max(insets.bottom, 8) : insets.bottom;
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primaryLight,
-        tabBarInactiveTintColor: colors.textDisabled,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.systemGray,
         tabBarBackground: () =>
           Platform.OS === 'ios' ? (
             <BlurView
-              intensity={tabBarConfig.blurIntensity}
-              tint={tabBarConfig.blurTint}
+              intensity={80}
+              tint="light"
               style={StyleSheet.absoluteFill}
             >
-              <View style={[StyleSheet.absoluteFill, { backgroundColor: tabBarConfig.backgroundColor }]} />
+              <View style={[StyleSheet.absoluteFill, styles.tabBarOverlay]} />
             </BlurView>
           ) : (
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: tabBarConfig.backgroundColor }]} />
+            <View style={[StyleSheet.absoluteFill, styles.tabBarAndroid]} />
           ),
         tabBarStyle: {
           position: 'absolute',
           backgroundColor: 'transparent',
-          borderTopWidth: tabBarConfig.borderWidth,
-          borderTopColor: tabBarConfig.borderColor,
-          height: 70 + bottomPadding,
+          borderTopWidth: 0.5,
+          borderTopColor: colors.separator,
+          height: 56 + bottomPadding,
           paddingBottom: bottomPadding,
-          paddingTop: 10,
-          paddingHorizontal: 6,
+          paddingTop: 6,
           elevation: 0,
           shadowOpacity: 0,
         },
         tabBarItemStyle: {
           paddingVertical: 4,
-          borderRadius: 14,
         },
         tabBarLabelStyle: {
-          fontSize: 9,
+          fontSize: 11,
           fontWeight: '600',
-          letterSpacing: 0.6,
-          textTransform: 'uppercase',
-          marginTop: 4,
+          marginTop: 2,
         },
         tabBarIconStyle: {
-          marginBottom: -2,
+          marginBottom: 0,
         },
       }}
     >
+      {/* Main 3 Tabs */}
       <Tabs.Screen
         name="home"
         options={{
           title: 'Home',
           tabBarIcon: ({ color, focused }) => (
-            <View style={focused ? styles.activeIconWrap : undefined}>
-              <Icon source="home" size={20} color={color} />
-            </View>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="customers"
-        options={{
-          title: 'Customers',
-          tabBarIcon: ({ color, focused }) => (
-            <View style={focused ? styles.activeIconWrap : undefined}>
-              <Icon source="account-group" size={20} color={color} />
-            </View>
+            <Icon source={focused ? 'home' : 'home-outline'} size={26} color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="orders"
         options={{
-          title: 'Orders',
+          title: 'Jobs',
           tabBarIcon: ({ color, focused }) => (
-            <View style={focused ? styles.activeIconWrap : undefined}>
-              <Icon source="clipboard-list" size={20} color={color} />
-            </View>
+            <Icon source={focused ? 'clipboard-text' : 'clipboard-text-outline'} size={26} color={color} />
           ),
         }}
-      />
-      <Tabs.Screen
-        name="vehicles"
-        options={{
-          title: 'Vehicles',
-          tabBarIcon: ({ color, focused }) => (
-            <View style={focused ? styles.activeIconWrap : undefined}>
-              <Icon source="car" size={20} color={color} />
-            </View>
-          ),
+        listeners={{
+          tabPress: (e) => {
+            // Always navigate to jobs index when tab is pressed
+            e.preventDefault();
+            router.replace('/(main)/orders');
+          },
         }}
       />
       <Tabs.Screen
@@ -109,40 +83,45 @@ export default function MainLayout() {
         options={{
           title: 'Settings',
           tabBarIcon: ({ color, focused }) => (
-            <View style={focused ? styles.activeIconWrap : undefined}>
-              <Icon source="cog" size={20} color={color} />
-            </View>
+            <Icon source={focused ? 'cog' : 'cog-outline'} size={26} color={color} />
           ),
         }}
       />
-      {/* Hidden screens - accessed through navigation */}
+
+      {/* Hidden screens - accessed through navigation only */}
+      <Tabs.Screen
+        name="customers"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="vehicles"
+        options={{ href: null }}
+      />
       <Tabs.Screen
         name="appointments"
-        options={{
-          href: null,
-        }}
+        options={{ href: null }}
       />
       <Tabs.Screen
         name="expenses"
-        options={{
-          href: null,
-        }}
+        options={{ href: null }}
       />
       <Tabs.Screen
         name="analytics"
-        options={{
-          href: null,
-        }}
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="quick-add"
+        options={{ href: null }}
       />
     </Tabs>
   );
 }
 
 const styles = StyleSheet.create({
-  activeIconWrap: {
-    backgroundColor: colors.primaryDim,
-    borderRadius: 10,
-    padding: 6,
-    marginBottom: -6,
+  tabBarOverlay: {
+    backgroundColor: 'rgba(255,255,255,0.92)',
+  },
+  tabBarAndroid: {
+    backgroundColor: '#FFFFFF',
   },
 });

@@ -1,26 +1,41 @@
-import { useState } from 'react';
-import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
 import { Text, Icon, Menu, Divider, ActivityIndicator } from 'react-native-paper';
 import { useLocalSearchParams, router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { observer } from 'mobx-react-lite';
 import { Card, Button, StatusBadge, TopBar, IconButton } from '@presentation/components/common';
-import { useVehicle } from '@presentation/viewmodels/useVehicles';
-import { useCustomer } from '@presentation/viewmodels/useCustomers';
-import { useOrdersByVehicle } from '@presentation/viewmodels/useOrders';
+import { useVehicleStore, useCustomerStore, useOrderStore, useUIStore } from '@stores';
+import { useVehicleController, useCustomerController, useOrderController } from '@controllers';
 import { colors } from '@theme/colors';
 import { formatDate } from '@core/utils/formatDate';
 
-export default function VehicleDetailScreen() {
+const VehicleDetailScreen = observer(function VehicleDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [menuVisible, setMenuVisible] = useState(false);
   const insets = useSafeAreaInsets();
 
-  const { data: vehicle, isLoading: loadingVehicle } = useVehicle(id || '');
-  const { data: customer, isLoading: loadingCustomer } = useCustomer(vehicle?.customerId || '');
-  const { data: orders } = useOrdersByVehicle(id || '');
+  const vehicleStore = useVehicleStore();
+  const customerStore = useCustomerStore();
+  const orderStore = useOrderStore();
+  const uiStore = useUIStore();
+  const vehicleController = useVehicleController();
+  const customerController = useCustomerController();
+  const orderController = useOrderController();
 
-  const recentOrders = (orders || []).slice(0, 5);
+  useEffect(() => {
+    if (id) {
+      vehicleController.fetchById(id);
+    }
+  }, [id]);
+
+  const vehicle = vehicleStore.currentVehicle;
+  const customer = vehicle?.customerId ? customerStore.getById(vehicle.customerId) : undefined;
+  const orders = vehicle ? orderStore.getByVehicleId(vehicle.id) : [];
+  const isLoading = uiStore.isLoading;
+
+  const recentOrders = orders.slice(0, 5);
 
   const handleEdit = () => {
     setMenuVisible(false);
@@ -29,30 +44,47 @@ export default function VehicleDetailScreen() {
 
   const handleDelete = () => {
     setMenuVisible(false);
-    // TODO: Implement delete confirmation
+    Alert.alert(
+      'Delete Vehicle',
+      `Are you sure you want to delete ${vehicle?.make} ${vehicle?.model}? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              if (id) {
+                await vehicleController.delete(id);
+                router.back();
+              }
+            } catch (err) {
+              console.error('Failed to delete vehicle:', err);
+              Alert.alert('Error', 'Failed to delete vehicle. Please try again.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleCreateOrder = () => {
-    router.push(`/(main)/orders/new?vehicleId=${id}`);
-  };
-
-  const handleGenerateQR = () => {
-    // TODO: Implement QR generation
+    router.push(`/create-order?vehicleId=${id}&customerId=${vehicle?.customerId}`);
   };
 
   // Get vehicle emoji based on type
   const getVehicleEmoji = () => {
     const make = vehicle?.make?.toLowerCase() || '';
     if (make.includes('bike') || make.includes('motorcycle') || make.includes('scooter')) {
-      return '🛵';
+      return '\uD83D\uDEF5';
     }
     if (make.includes('truck')) {
-      return '🚛';
+      return '\uD83D\uDE9B';
     }
-    return '🚗';
+    return '\uD83D\uDE97';
   };
 
-  if (loadingVehicle || !vehicle) {
+  if (isLoading || !vehicle) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -78,7 +110,6 @@ export default function VehicleDetailScreen() {
             contentStyle={styles.menuContent}
           >
             <Menu.Item onPress={handleEdit} title="Edit" leadingIcon="pencil" />
-            <Menu.Item onPress={handleGenerateQR} title="Generate QR" leadingIcon="qrcode" />
             <Divider />
             <Menu.Item
               onPress={handleDelete}
@@ -125,7 +156,7 @@ export default function VehicleDetailScreen() {
               <Text style={styles.statLabel}>Year</Text>
             </View>
             <View style={styles.statCard}>
-              <Text style={styles.statValue}>{(orders || []).length}</Text>
+              <Text style={styles.statValue}>{orders.length}</Text>
               <Text style={styles.statLabel}>Services</Text>
             </View>
             <View style={styles.statCard}>
@@ -197,15 +228,6 @@ export default function VehicleDetailScreen() {
           >
             Create New Order
           </Button>
-          <Button
-            mode="outlined"
-            onPress={handleGenerateQR}
-            icon="qrcode"
-            fullWidth
-            style={styles.outlinedButton}
-          >
-            Generate QR Code
-          </Button>
         </View>
 
         {/* Service History */}
@@ -254,7 +276,9 @@ export default function VehicleDetailScreen() {
       </ScrollView>
     </View>
   );
-}
+});
+
+export default VehicleDetailScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -452,9 +476,6 @@ const styles = StyleSheet.create({
   actions: {
     padding: 18,
     gap: 8,
-  },
-  outlinedButton: {
-    marginTop: 0,
   },
   orderCard: {
     marginBottom: 8,

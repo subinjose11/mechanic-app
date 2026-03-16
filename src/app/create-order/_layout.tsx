@@ -1,16 +1,13 @@
 import { Stack } from 'expo-router';
 
-export default function OrdersLayout() {
+export default function CreateOrderLayout() {
   return (
     <Stack
-      initialRouteName="index"
       screenOptions={{
         headerShown: false,
       }}
     >
       <Stack.Screen name="index" />
-      <Stack.Screen name="new" />
-      <Stack.Screen name="[id]" />
     </Stack>
   );
 }
