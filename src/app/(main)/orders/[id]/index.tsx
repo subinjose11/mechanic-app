@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useLayoutEffect } from 'react';
+import { useState, useEffect, useLayoutEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -18,13 +18,13 @@ import { formatCurrency } from '@core/utils/formatCurrency';
 import { formatDateTime } from '@core/utils/formatDate';
 import { OrderStatus } from '@core/constants';
 
-import { JobInfoCard } from './_components/JobInfoCard';
-import { GlassCollapsibleSection } from './_components/GlassCollapsibleSection';
-import { WorkItemRow } from './_components/WorkItemRow';
-import { PaymentSummary } from './_components/PaymentSummary';
-import { SmartBottomBar } from './_components/SmartBottomBar';
-import { AddLaborSheet } from './_components/AddLaborSheet';
-import { AddPartSheet } from './_components/AddPartSheet';
+import { JobInfoCard } from '@presentation/components/order-detail/JobInfoCard';
+import { GlassCollapsibleSection } from '@presentation/components/order-detail/GlassCollapsibleSection';
+import { WorkItemRow } from '@presentation/components/order-detail/WorkItemRow';
+import { PaymentSummary } from '@presentation/components/order-detail/PaymentSummary';
+import { SmartBottomBar } from '@presentation/components/order-detail/SmartBottomBar';
+import { AddLaborSheet } from '@presentation/components/order-detail/AddLaborSheet';
+import { AddPartSheet } from '@presentation/components/order-detail/AddPartSheet';
 
 const OrderDetailScreen = observer(function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -55,15 +55,13 @@ const OrderDetailScreen = observer(function OrderDetailScreen() {
   }, [id]);
 
   const order = orderStore.currentOrder;
-  const isLoading = orderStore.isLoading;
 
-  const totals = useMemo(() => {
-    if (!order) return { labor: 0, parts: 0, total: 0, paid: 0, due: 0 };
-    const labor = (order.laborItems || []).reduce((sum, i) => sum + i.total, 0);
-    const parts = (order.spareParts || []).reduce((sum, i) => sum + i.total, 0);
-    const paid = (order.payments || []).reduce((sum, p) => sum + p.amount, 0);
-    return { labor, parts, total: labor + parts, paid, due: labor + parts - paid };
-  }, [order]);
+  // Compute totals inline so MobX can track the deep observable access
+  // (useMemo with [order] won't recompute when nested arrays are mutated in place)
+  const labor = order ? (order.laborItems || []).reduce((sum: number, i: any) => sum + i.total, 0) : 0;
+  const parts = order ? (order.spareParts || []).reduce((sum: number, i: any) => sum + i.total, 0) : 0;
+  const paid = order ? (order.payments || []).reduce((sum: number, p: any) => sum + p.amount, 0) : 0;
+  const totals = { labor, parts, total: labor + parts, paid, due: labor + parts - paid };
 
   const handleDeleteOrder = () => {
     setMenuVisible(false);
@@ -98,8 +96,9 @@ const OrderDetailScreen = observer(function OrderDetailScreen() {
       setShowLaborSheet(false);
     } catch (e) {
       console.error(e);
+    } finally {
+      setIsAdding(false);
     }
-    setIsAdding(false);
   };
 
   const handleAddPart = async (name: string, price: number, qty: number) => {
@@ -110,8 +109,9 @@ const OrderDetailScreen = observer(function OrderDetailScreen() {
       setShowPartsSheet(false);
     } catch (e) {
       console.error(e);
+    } finally {
+      setIsAdding(false);
     }
-    setIsAdding(false);
   };
 
   const handleDeleteLabor = async (itemId: string) => {

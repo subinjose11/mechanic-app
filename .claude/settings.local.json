@@ -74,7 +74,10 @@
       "Bash(/Users/subinjose/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.5/skills/brainstorming/scripts/stop-server.sh /Users/subinjose/Documents/rn_auto/mechanic-app/.superpowers/brainstorm/12433-1773833783)",
       "Bash(lsof -ti:8081 -ti:8082)",
       "Bash(xargs kill:*)",
-      "Bash(/Users/subinjose/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.5/skills/brainstorming/scripts/stop-server.sh /Users/subinjose/Documents/rn_auto/mechanic-app/.superpowers/brainstorm/14360-1773836835)"
+      "Bash(/Users/subinjose/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.5/skills/brainstorming/scripts/stop-server.sh /Users/subinjose/Documents/rn_auto/mechanic-app/.superpowers/brainstorm/14360-1773836835)",
+      "Bash(lsof -ti:8081)",
+      "Bash(lsof -i:8081)",
+      "Bash(kill -9 17229)"
     ]
   }
 }
