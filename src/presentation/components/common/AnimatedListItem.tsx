@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, ViewStyle } from 'react-native';
-import { animations } from '@theme/animations';
+import React from 'react';
+import { ViewStyle } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 interface AnimatedListItemProps {
   children: React.ReactNode;
@@ -15,37 +15,12 @@ export function AnimatedListItem({
   style,
   maxDelay = 500,
 }: AnimatedListItemProps) {
-  const opacity = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(animations.fadeIn.from.translateY)).current;
-
-  useEffect(() => {
-    const delay = Math.min(index * animations.timing.stagger, maxDelay);
-
-    Animated.parallel([
-      Animated.timing(opacity, {
-        toValue: 1,
-        duration: animations.fadeIn.duration,
-        delay,
-        useNativeDriver: true,
-      }),
-      Animated.timing(translateY, {
-        toValue: 0,
-        duration: animations.fadeIn.duration,
-        delay,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [index, maxDelay, opacity, translateY]);
+  const delay = Math.min(index * 60, maxDelay);
 
   return (
     <Animated.View
-      style={[
-        {
-          opacity,
-          transform: [{ translateY }],
-        },
-        style,
-      ]}
+      entering={FadeInDown.delay(delay).springify().damping(18).stiffness(200)}
+      style={style}
     >
       {children}
     </Animated.View>

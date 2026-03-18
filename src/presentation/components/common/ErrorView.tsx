@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Text, Icon } from 'react-native-paper';
 import { colors } from '@theme/colors';
 import { Button } from './Button';
@@ -18,16 +19,19 @@ export function ErrorView({
   style,
 }: ErrorViewProps) {
   return (
-    <View style={[styles.container, style]}>
+    <Animated.View
+      entering={FadeInDown.springify().damping(18).stiffness(200)}
+      style={[styles.container, style]}
+    >
       <Icon source="alert-circle-outline" size={64} color={colors.error} />
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.message}>{message}</Text>
       {onRetry && (
-        <Button onPress={onRetry} mode="outlined" style={styles.button}>
+        <Button onPress={onRetry} mode="outlined" color="error" style={styles.button}>
           Try Again
         </Button>
       )}
-    </View>
+    </Animated.View>
   );
 }
 

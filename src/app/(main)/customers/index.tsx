@@ -63,7 +63,7 @@ function CustomersScreen() {
   if (customerStore.isLoading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
-        <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+        <StatusBar barStyle="light-content" backgroundColor={colors.background} />
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Loading customers...</Text>
       </View>
@@ -72,7 +72,7 @@ function CustomersScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
 
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <Pressable style={styles.backButton} onPress={() => router.replace('/(main)/home')}>

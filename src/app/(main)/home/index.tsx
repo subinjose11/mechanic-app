@@ -5,8 +5,10 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { observer } from 'mobx-react-lite';
 import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useAuthStore, useOrderStore, useCustomerStore, useVehicleStore } from '@views/hooks/useStore';
 import { colors } from '@theme/colors';
+import { shadows } from '@theme/shadows';
 import { formatCurrency } from '@core/utils/formatCurrency';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -88,12 +90,12 @@ function HomeScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
 
-      {/* Gradient Header */}
+      {/* Dark Gradient Header */}
       <LinearGradient
-        colors={[colors.primary, '#1a1a2e']}
+        colors={['#0C0C14', colors.background]}
         style={[styles.headerGradient, { paddingTop: insets.top }]}
         start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+        end={{ x: 0, y: 1 }}
       >
         <View style={styles.headerTop}>
           <View>
@@ -101,7 +103,7 @@ function HomeScreen() {
             <Text style={styles.shopName}>{authStore.user?.shopName || 'Workshop'}</Text>
           </View>
           <Pressable style={styles.settingsBtn} onPress={() => router.push('/(main)/settings')}>
-            <Icon source="cog-outline" size={24} color="#fff" />
+            <Icon source="cog-outline" size={24} color={colors.textPrimary} />
           </Pressable>
         </View>
 
@@ -110,9 +112,16 @@ function HomeScreen() {
           style={styles.createOrderBtn}
           onPress={() => router.push('/create-order')}
         >
-          <Icon source="plus-circle" size={24} color="#fff" />
-          <Text style={styles.createOrderText}>Create New Order</Text>
-          <Icon source="chevron-right" size={20} color="rgba(255,255,255,0.7)" />
+          <LinearGradient
+            colors={['#6366F1', '#8B5CF6']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.createOrderGradient}
+          >
+            <Icon source="plus-circle" size={24} color="#fff" />
+            <Text style={styles.createOrderText}>Create New Order</Text>
+            <Icon source="chevron-right" size={20} color="rgba(255,255,255,0.7)" />
+          </LinearGradient>
         </Pressable>
       </LinearGradient>
 
@@ -130,7 +139,7 @@ function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Stats Grid */}
-        <View style={styles.statsGrid}>
+        <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.statsGrid}>
           <Pressable style={styles.statCard} onPress={() => router.push('/(main)/orders?status=active')}>
             <View style={[styles.statIconBox, { backgroundColor: colors.primaryDim }]}>
               <Icon source="progress-wrench" size={20} color={colors.primary} />
@@ -146,14 +155,14 @@ function HomeScreen() {
             <Text style={styles.statLabel}>Done Today</Text>
           </View>
           <View style={styles.statCard}>
-            <View style={[styles.statIconBox, { backgroundColor: '#e3f2fd' }]}>
-              <Icon source="cash-multiple" size={20} color={colors.primary} />
+            <View style={[styles.statIconBox, { backgroundColor: colors.secondaryDim }]}>
+              <Icon source="cash-multiple" size={20} color={colors.secondary} />
             </View>
             <Text style={styles.statValue}>{formatCurrency(todayRevenue)}</Text>
             <Text style={styles.statLabel}>Revenue</Text>
           </View>
           <View style={styles.statCard}>
-            <View style={[styles.statIconBox, { backgroundColor: colors.warningDim }]}>
+            <View style={[styles.statIconBox, { backgroundColor: colors.successDim }]}>
               <Icon source="trending-up" size={20} color={colors.success} />
             </View>
             <Text style={[styles.statValue, { color: colors.success }]}>
@@ -161,10 +170,10 @@ function HomeScreen() {
             </Text>
             <Text style={styles.statLabel}>Profit</Text>
           </View>
-        </View>
+        </Animated.View>
 
         {/* Quick Access */}
-        <View style={styles.section}>
+        <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.section}>
           <View style={styles.sectionTitleRow}>
             <Icon source="lightning-bolt" size={22} color={colors.textSecondary} />
             <Text style={styles.sectionTitle}>Quick Access</Text>
@@ -173,7 +182,7 @@ function HomeScreen() {
           <View style={styles.quickGrid}>
             <Pressable style={styles.quickCard} onPress={() => router.push('/(main)/orders')}>
               <LinearGradient
-                colors={[colors.primary, '#4361ee']}
+                colors={['#6366F1', '#4F46E5']}
                 style={styles.quickIconGradient}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
@@ -186,7 +195,7 @@ function HomeScreen() {
 
             <Pressable style={styles.quickCard} onPress={() => router.push('/(main)/customers')}>
               <LinearGradient
-                colors={['#06d6a0', '#118ab2']}
+                colors={['#06B6D4', '#22D3EE']}
                 style={styles.quickIconGradient}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
@@ -199,7 +208,7 @@ function HomeScreen() {
 
             <Pressable style={styles.quickCard} onPress={() => router.push('/(main)/vehicles')}>
               <LinearGradient
-                colors={['#f72585', '#b5179e']}
+                colors={['#EC4899', '#A855F7']}
                 style={styles.quickIconGradient}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
@@ -212,7 +221,7 @@ function HomeScreen() {
 
             <Pressable style={styles.quickCard} onPress={() => router.push('/(main)/analytics')}>
               <LinearGradient
-                colors={['#ff9f1c', '#e36414']}
+                colors={['#F59E0B', '#FBBF24']}
                 style={styles.quickIconGradient}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
@@ -220,10 +229,10 @@ function HomeScreen() {
                 <Icon source="chart-line" size={24} color="#fff" />
               </LinearGradient>
               <Text style={styles.quickLabel}>Analytics</Text>
-              <Icon source="chevron-right" size={18} color={colors.systemGray3} />
+              <Icon source="chevron-right" size={18} color={colors.systemGray} />
             </Pressable>
           </View>
-        </View>
+        </Animated.View>
       </ScrollView>
     </View>
   );
@@ -234,7 +243,7 @@ export default observer(HomeScreen);
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: colors.background,
   },
   // Header
   headerGradient: {
@@ -251,29 +260,34 @@ const styles = StyleSheet.create({
   greeting: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.textPrimary,
     letterSpacing: -0.5,
   },
   shopName: {
     fontSize: 15,
-    color: 'rgba(255,255,255,0.7)',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   settingsBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   // Create Order Button
   createOrderBtn: {
+    marginHorizontal: 20,
+    borderRadius: 14,
+    overflow: 'hidden',
+    ...shadows.glow,
+  },
+  createOrderGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 14,
-    marginHorizontal: 20,
     paddingHorizontal: 18,
     paddingVertical: 16,
     gap: 12,
@@ -299,15 +313,12 @@ const styles = StyleSheet.create({
   },
   statCard: {
     width: (SCREEN_WIDTH - 42) / 2,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 14,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   statIconBox: {
     width: 40,
@@ -351,14 +362,11 @@ const styles = StyleSheet.create({
   },
   quickCard: {
     width: (SCREEN_WIDTH - 42) / 2,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   quickIconGradient: {
     width: 48,

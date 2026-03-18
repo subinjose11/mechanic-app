@@ -162,7 +162,7 @@ const QuickAddScreen = observer(function QuickAddScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
       <TopBar title="Quick Add" />
 
       <KeyboardAvoidingView

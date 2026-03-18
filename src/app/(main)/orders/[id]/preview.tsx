@@ -175,7 +175,7 @@ const ReceiptPreviewScreen = observer(function ReceiptPreviewScreen() {
   if (isLoading || !order) {
     return (
       <View style={styles.loadingContainer}>
-        <StatusBar barStyle="dark-content" />
+        <StatusBar barStyle="light-content" />
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Generating receipt...</Text>
       </View>
@@ -191,7 +191,7 @@ const ReceiptPreviewScreen = observer(function ReceiptPreviewScreen() {
 
       {/* Header */}
       <LinearGradient
-        colors={['#1a1a2e', '#16213e']}
+        colors={['#0C0C14', '#06060A']}
         style={[styles.header, { paddingTop: insets.top }]}
       >
         <View style={styles.headerContent}>
@@ -480,13 +480,13 @@ export default ReceiptPreviewScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f0f2f5',
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f0f2f5',
+    backgroundColor: colors.background,
   },
   loadingText: {
     marginTop: 12,
@@ -528,7 +528,7 @@ const styles = StyleSheet.create({
   },
   // Receipt Card
   receiptCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderRadius: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
@@ -554,7 +554,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 12,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderTopColor: '#f0f2f5',
+    borderTopColor: colors.background,
   },
   receiptBottom: {
     height: 12,
@@ -573,7 +573,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 12,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderBottomColor: '#f0f2f5',
+    borderBottomColor: colors.background,
   },
   // Shop Header
   shopHeader: {
@@ -659,7 +659,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   plateBox: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surfaceSecondary,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 8,
@@ -757,7 +757,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tableRowAlt: {
-    backgroundColor: 'rgba(0,0,0,0.02)',
+    backgroundColor: 'rgba(255,255,255,0.02)',
   },
   tableItem: {
     flex: 1,
@@ -901,9 +901,9 @@ const styles = StyleSheet.create({
   // Bottom Bar
   bottomBar: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: colors.separator,
+    borderTopColor: colors.border,
     paddingHorizontal: 16,
     paddingTop: 16,
     gap: 12,

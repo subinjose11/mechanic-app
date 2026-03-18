@@ -1,15 +1,15 @@
-import { MD3LightTheme } from 'react-native-paper';
+import { MD3DarkTheme } from 'react-native-paper';
 import { colors } from './colors';
 import { typography } from './typography';
 import { shadows } from './shadows';
-import { animations } from './animations';
+import { animations, springPresets, enteringPresets, exitingPresets, listItemEntering } from './animations';
 import { glass, glassStyles, cardStyles } from './glass';
 
 export const theme = {
-  ...MD3LightTheme,
-  dark: false,
+  ...MD3DarkTheme,
+  dark: true,
   colors: {
-    ...MD3LightTheme.colors,
+    ...MD3DarkTheme.colors,
     primary: colors.primary,
     primaryContainer: colors.primaryDim,
     secondary: colors.secondary,
@@ -17,7 +17,7 @@ export const theme = {
     background: colors.background,
     surface: colors.surface,
     surfaceVariant: colors.surfaceVariant,
-    surfaceDisabled: colors.systemGray6,
+    surfaceDisabled: colors.systemGray5,
     error: colors.error,
     errorContainer: colors.errorDim,
     onPrimary: colors.textOnPrimary,
@@ -31,13 +31,13 @@ export const theme = {
     elevation: {
       level0: 'transparent',
       level1: colors.surface,
-      level2: colors.surface,
-      level3: colors.surface,
-      level4: colors.surface,
-      level5: colors.surface,
+      level2: colors.surfaceSecondary,
+      level3: colors.surfaceElevated,
+      level4: colors.surfaceElevated,
+      level5: colors.surfaceElevated,
     },
   },
-  roundness: 12,
+  roundness: 14,
 };
 
 export const spacing = {
@@ -50,13 +50,13 @@ export const spacing = {
 } as const;
 
 export const borderRadius = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  xxl: 24,
+  sm: 10,
+  md: 14,
+  lg: 18,
+  xl: 22,
+  xxl: 28,
   round: 9999,
 } as const;
 
-export { colors, typography, shadows, animations, glass, glassStyles, cardStyles };
+export { colors, typography, shadows, animations, springPresets, enteringPresets, exitingPresets, listItemEntering, glass, glassStyles, cardStyles };
 export type AppTheme = typeof theme;

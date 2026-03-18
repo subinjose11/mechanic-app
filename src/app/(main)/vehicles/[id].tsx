@@ -128,7 +128,7 @@ const VehicleDetailScreen = observer(function VehicleDetailScreen() {
       >
         {/* Hero Section with Gradient */}
         <LinearGradient
-          colors={['#12103a', colors.background]}
+          colors={['#0C0C14', colors.background]}
           style={styles.heroGradient}
         >
           <View style={styles.vehicleTop}>

@@ -1,8 +1,9 @@
-import React, { useRef } from 'react';
-import { StyleSheet, ViewStyle, Pressable, View, Animated } from 'react-native';
+import React from 'react';
+import { StyleSheet, ViewStyle, Pressable, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { colors } from '@theme/colors';
 import { shadows } from '@theme/shadows';
-import { animations } from '@theme/animations';
+import { useAnimatedPress } from '@presentation/hooks/useAnimatedPress';
 
 interface CardProps {
   children: React.ReactNode;
@@ -22,25 +23,9 @@ export function Card({
   elevated = false,
   disabled = false,
 }: CardProps) {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const { animatedStyle, handlePressIn, handlePressOut } = useAnimatedPress(0.97);
 
-  const handlePressIn = () => {
-    Animated.timing(scaleAnim, {
-      toValue: animations.press.scale,
-      duration: animations.press.duration,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.timing(scaleAnim, {
-      toValue: 1,
-      duration: animations.press.duration,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const cardRadius = elevated ? 14 : 12;
+  const cardRadius = elevated ? 18 : 14;
   const cardShadow = elevated ? shadows.md : shadows.sm;
 
   const innerContent = (
@@ -54,7 +39,7 @@ export function Card({
           styles.card,
           { borderRadius: cardRadius },
           cardShadow,
-          { transform: [{ scale: scaleAnim }] },
+          animatedStyle,
           style,
         ]}
       >
@@ -81,6 +66,8 @@ export function Card({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
     overflow: 'hidden',
   },
   pressable: {

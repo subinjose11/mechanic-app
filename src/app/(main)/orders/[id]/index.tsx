@@ -123,7 +123,7 @@ function ActionCard({
       style={({ pressed }) => [styles.actionCard, pressed && styles.actionCardPressed]}
       onPress={onPress}
     >
-      <LinearGradient colors={iconBg} style={styles.actionIcon} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+      <LinearGradient colors={iconBg as [string, string]} style={styles.actionIcon} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
         <Icon source={icon} size={22} color="#fff" />
       </LinearGradient>
       <View style={styles.actionContent}>
@@ -259,7 +259,7 @@ const OrderDetailScreen = observer(function OrderDetailScreen() {
   if (isLoading || !order) {
     return (
       <View style={styles.loadingContainer}>
-        <StatusBar barStyle="dark-content" />
+        <StatusBar barStyle="light-content" />
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Loading job details...</Text>
       </View>
@@ -284,7 +284,7 @@ const OrderDetailScreen = observer(function OrderDetailScreen() {
 
       {/* Gradient Header */}
       <LinearGradient
-        colors={[colors.primary, '#1a1a2e']}
+        colors={['#0C0C14', '#06060A']}
         style={[styles.headerGradient, { paddingTop: insets.top }]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -471,10 +471,11 @@ const OrderDetailScreen = observer(function OrderDetailScreen() {
           <View style={styles.statusButtonsContainer}>
             {(['pending', 'in_progress', 'completed'] as OrderStatus[]).map((s) => {
               const isActive = order.status === s;
-              const statusColors = {
+              const statusColors: Record<string, { bg: string; color: string; icon: string }> = {
                 pending: { bg: colors.warningDim, color: colors.systemOrange, icon: 'clock-outline' },
                 in_progress: { bg: colors.primaryDim, color: colors.primary, icon: 'progress-wrench' },
                 completed: { bg: colors.successDim, color: colors.success, icon: 'check-circle-outline' },
+                cancelled: { bg: 'rgba(100,116,139,0.15)', color: colors.systemGray, icon: 'close-circle-outline' },
               };
               const config = statusColors[s];
 
@@ -636,13 +637,13 @@ export default OrderDetailScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: colors.background,
   },
   loadingText: {
     marginTop: 12,
@@ -757,7 +758,7 @@ const styles = StyleSheet.create({
   // Stats
   statsContainer: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     marginHorizontal: 16,
     borderRadius: 16,
     padding: 20,
@@ -789,7 +790,7 @@ const styles = StyleSheet.create({
   },
   // Description Card
   descriptionCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     marginHorizontal: 16,
     marginTop: 16,
     borderRadius: 14,
@@ -837,7 +838,7 @@ const styles = StyleSheet.create({
   actionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 8,
@@ -895,7 +896,7 @@ const styles = StyleSheet.create({
   },
   // Items Container
   itemsContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     marginBottom: 8,
     marginLeft: 24,
@@ -946,7 +947,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     paddingVertical: 14,
     borderRadius: 12,
     borderWidth: 1.5,
@@ -960,9 +961,9 @@ const styles = StyleSheet.create({
   },
   // Bottom Bar
   bottomBar: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: colors.separator,
+    borderTopColor: colors.border,
     paddingHorizontal: 16,
     paddingTop: 16,
     shadowColor: '#000',
@@ -1013,7 +1014,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   bottomSheet: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,

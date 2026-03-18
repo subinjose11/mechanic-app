@@ -5,7 +5,6 @@ import { BlurView } from 'expo-blur';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '@theme/colors';
-import { borderRadius } from '@theme/index';
 
 interface TopBarProps {
   title: string;
@@ -84,8 +83,8 @@ export function TopBar({
   if (Platform.OS === 'ios') {
     return (
       <BlurView
-        intensity={80}
-        tint="light"
+        intensity={60}
+        tint="dark"
         style={[
           styles.container,
           styles.blurred,
@@ -148,10 +147,10 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.separator,
   },
   overlay: {
-    backgroundColor: 'rgba(249,249,249,0.8)',
+    backgroundColor: 'rgba(6,6,10,0.85)',
   },
   fallback: {
-    backgroundColor: colors.surfaceSecondary,
+    backgroundColor: colors.background,
     borderBottomWidth: 0.5,
     borderBottomColor: colors.separator,
   },
@@ -192,6 +191,7 @@ const styles = StyleSheet.create({
     fontSize: 34,
     fontWeight: '700',
     color: colors.textPrimary,
+    letterSpacing: -1.2,
     marginTop: 8,
     marginBottom: 8,
   },

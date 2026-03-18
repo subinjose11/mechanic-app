@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   TextStyle,
@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   Platform,
 } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { Icon } from 'react-native-paper';
 import { colors } from '@theme/colors';
 import { borderRadius } from '@theme/index';
@@ -35,6 +36,8 @@ interface InputProps {
   onFocus?: () => void;
 }
 
+const AnimatedView = Animated.createAnimatedComponent(View);
+
 export function Input({
   label,
   value,
@@ -56,10 +59,40 @@ export function Input({
   onBlur,
   onFocus,
 }: InputProps) {
+  const [isFocused, setIsFocused] = useState(false);
+  const borderProgress = useSharedValue(0);
+
+  const animatedBorderStyle = useAnimatedStyle(() => ({
+    borderColor: error
+      ? colors.error
+      : borderProgress.value > 0
+      ? colors.primary
+      : colors.separatorOpaque,
+  }));
+
+  const handleFocus = () => {
+    setIsFocused(true);
+    borderProgress.value = withTiming(1, { duration: 200 });
+    onFocus?.();
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    borderProgress.value = withTiming(0, { duration: 200 });
+    onBlur?.();
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>
-      <View style={[styles.inputContainer, error && styles.inputError]}>
+      <AnimatedView
+        style={[
+          styles.inputContainer,
+          animatedBorderStyle,
+          error && styles.inputError,
+          isFocused && styles.inputFocused,
+        ]}
+      >
         {leftIcon && (
           <View style={styles.iconLeft}>
             <Icon source={leftIcon} size={20} color={colors.systemGray} />
@@ -85,17 +118,18 @@ export function Input({
             multiline && styles.multiline,
             style,
           ]}
-          onBlur={onBlur}
-          onFocus={onFocus}
+          onBlur={handleBlur}
+          onFocus={handleFocus}
           selectionColor={colors.primary}
           cursorColor={colors.primary}
+          keyboardAppearance="dark"
         />
         {rightIcon && (
           <TouchableOpacity style={styles.iconRight} onPress={onRightIconPress}>
             <Icon source={rightIcon} size={20} color={colors.systemGray} />
           </TouchableOpacity>
         )}
-      </View>
+      </AnimatedView>
       {error && <Text style={styles.errorText}>{error}</Text>}
     </View>
   );
@@ -125,6 +159,13 @@ const styles = StyleSheet.create({
   },
   inputError: {
     borderColor: colors.error,
+  },
+  inputFocused: {
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 2,
   },
   input: {
     flex: 1,

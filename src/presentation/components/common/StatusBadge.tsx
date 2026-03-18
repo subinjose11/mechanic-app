@@ -1,8 +1,16 @@
-import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, ViewStyle, Animated } from 'react-native';
+import React from 'react';
+import { View, StyleSheet, ViewStyle } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import { Text, Icon } from 'react-native-paper';
 import { colors } from '@theme/colors';
 import { OrderStatus, AppointmentStatus, ORDER_STATUS_LABELS, APPOINTMENT_STATUS_LABELS } from '@core/constants';
+import { useEffect } from 'react';
 
 interface StatusBadgeProps {
   status: OrderStatus | AppointmentStatus;
@@ -12,71 +20,74 @@ interface StatusBadgeProps {
 }
 
 export function StatusBadge({ status, type = 'order', style, showIcon = true }: StatusBadgeProps) {
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const pulseScale = useSharedValue(1);
 
   useEffect(() => {
     if (status === 'in_progress') {
-      const pulse = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.03,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-        ])
+      pulseScale.value = withRepeat(
+        withSequence(
+          withTiming(1.05, { duration: 1000 }),
+          withTiming(1, { duration: 1000 }),
+        ),
+        -1,
+        false,
       );
-      pulse.start();
-      return () => pulse.stop();
     }
-  }, [status, pulseAnim]);
+  }, [status, pulseScale]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: status === 'in_progress' ? pulseScale.value : 1 }],
+  }));
 
   const getStatusConfig = () => {
     switch (status) {
       case 'pending':
         return {
           bg: colors.warningDim,
-          text: colors.systemOrange,
+          text: colors.warning,
+          border: colors.warningBorder,
           icon: 'clock-outline',
         };
       case 'in_progress':
         return {
           bg: colors.primaryDim,
           text: colors.primary,
+          border: colors.primaryBorder,
           icon: 'progress-wrench',
         };
       case 'completed':
         return {
           bg: colors.successDim,
           text: colors.success,
+          border: colors.successBorder,
           icon: 'check-circle-outline',
         };
       case 'cancelled':
         return {
-          bg: 'rgba(142,142,147,0.12)',
+          bg: 'rgba(100,116,139,0.15)',
           text: colors.systemGray,
+          border: 'rgba(100,116,139,0.25)',
           icon: 'close-circle-outline',
         };
       case 'scheduled':
         return {
           bg: colors.primaryDim,
           text: colors.primary,
+          border: colors.primaryBorder,
           icon: 'calendar-clock',
         };
       case 'confirmed':
         return {
-          bg: 'rgba(88,86,214,0.12)',
-          text: colors.systemIndigo,
+          bg: colors.accentDim,
+          text: colors.accent,
+          border: colors.accentBorder,
           icon: 'calendar-check',
         };
       default:
         return {
-          bg: 'rgba(142,142,147,0.12)',
+          bg: 'rgba(100,116,139,0.15)',
           text: colors.systemGray,
+          border: 'rgba(100,116,139,0.25)',
           icon: 'help-circle-outline',
         };
     }
@@ -97,8 +108,9 @@ export function StatusBadge({ status, type = 'order', style, showIcon = true }: 
         styles.badge,
         {
           backgroundColor: config.bg,
-          transform: [{ scale: status === 'in_progress' ? pulseAnim : 1 }],
+          borderColor: config.border,
         },
+        animatedStyle,
         style,
       ]}
     >
@@ -118,6 +130,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 6,
+    borderWidth: 1,
     alignSelf: 'flex-start',
   },
   text: {

@@ -3,6 +3,7 @@ import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Touchable
 import { Text, Icon } from 'react-native-paper';
 import { Link, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { observer } from 'mobx-react-lite';
 import { Button, Input, GlassCard } from '@presentation/components/common';
 import { useAuthStore } from '@views/hooks/useStore';
@@ -64,7 +65,18 @@ function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+
+      {/* Background gradient */}
+      <LinearGradient
+        colors={['#12103a', '#06060A']}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 0.55 }}
+        style={StyleSheet.absoluteFill}
+      />
+
+      {/* Orb glow effect */}
+      <View style={styles.orb} />
 
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAvoidingView
@@ -78,19 +90,22 @@ function LoginScreen() {
           >
             {/* Logo */}
             <View style={styles.logoContainer}>
-              <View style={styles.logo}>
+              <LinearGradient
+                colors={['#6366F1', '#A855F7']}
+                style={styles.logo}
+              >
                 <Text style={styles.logoIcon}>🔧</Text>
-              </View>
+              </LinearGradient>
             </View>
 
             {/* App name */}
             <Text style={styles.appName}>
               Mechanic<Text style={styles.appNameAccent}>Pro</Text>
             </Text>
-            <Text style={styles.tagline}>Workshop Management</Text>
+            <Text style={styles.tagline}>WORKSHOP MANAGEMENT</Text>
 
             {/* Login card */}
-            <GlassCard style={styles.card}>
+            <GlassCard style={styles.card} level="elevated" glow>
               <Text style={styles.cardTitle}>Welcome</Text>
               <Text style={styles.cardSubtitle}>Sign in to manage your workshop</Text>
 
@@ -207,6 +222,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  orb: {
+    position: 'absolute',
+    top: -80,
+    left: '50%',
+    marginLeft: -140,
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    backgroundColor: 'rgba(99,102,241,0.18)',
+  },
   safeArea: {
     flex: 1,
   },
@@ -226,13 +251,12 @@ const styles = StyleSheet.create({
     width: 76,
     height: 76,
     borderRadius: 22,
-    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.4,
+    shadowRadius: 40,
     elevation: 12,
   },
   logoIcon: {
@@ -249,9 +273,10 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   tagline: {
-    fontSize: 15,
-    color: colors.textSecondary,
-    marginTop: 6,
+    fontSize: 12,
+    color: colors.textTertiary,
+    letterSpacing: 2.5,
+    marginTop: 8,
     marginBottom: 36,
   },
   card: {
@@ -272,10 +297,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.systemGray6,
+    backgroundColor: colors.surfaceSecondary,
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   googleIconContainer: {
     width: 24,
@@ -327,6 +354,8 @@ const styles = StyleSheet.create({
   },
   errorContainer: {
     backgroundColor: colors.errorDim,
+    borderWidth: 1,
+    borderColor: colors.errorBorder,
     padding: 12,
     borderRadius: 10,
     marginTop: 16,

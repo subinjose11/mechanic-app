@@ -1,53 +1,53 @@
 import { ViewStyle } from 'react-native';
 
-// Apple-style card styles (replacing glass effects)
+// Dark premium glassmorphism
 export const glass = {
   // Base level - subtle for backgrounds
   base: {
-    backgroundColor: '#F2F2F7',
-    borderWidth: 0,
-    borderColor: 'transparent',
-    blurIntensity: 0,
-    blurTint: 'light' as const,
+    backgroundColor: 'rgba(12,12,20,0.80)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.04)',
+    blurIntensity: 20,
+    blurTint: 'dark' as const,
   },
 
-  // Card level - standard cards with subtle shadow
+  // Card level - standard cards with glass effect
   card: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 0,
-    borderColor: 'transparent',
-    borderRadius: 12,
-    blurIntensity: 0,
-    blurTint: 'light' as const,
+    backgroundColor: 'rgba(18,18,28,0.70)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 14,
+    blurIntensity: 40,
+    blurTint: 'dark' as const,
   },
 
   // Elevated level - floating elements
   elevated: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 0,
-    borderColor: 'transparent',
-    borderRadius: 14,
-    blurIntensity: 0,
-    blurTint: 'light' as const,
+    backgroundColor: 'rgba(30,30,46,0.65)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    borderRadius: 18,
+    blurIntensity: 60,
+    blurTint: 'dark' as const,
   },
 
   // Modal level - modals and sheets
   modal: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 0,
-    borderColor: 'transparent',
-    borderRadius: 16,
-    blurIntensity: 0,
-    blurTint: 'light' as const,
+    backgroundColor: 'rgba(30,30,46,0.80)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 22,
+    blurIntensity: 80,
+    blurTint: 'dark' as const,
   },
 
   // Tab bar level - navigation tab bar
   tabBar: {
-    backgroundColor: 'rgba(249,249,249,0.94)',
+    backgroundColor: 'rgba(6,6,10,0.85)',
     borderWidth: 0.5,
-    borderColor: 'rgba(0,0,0,0.1)',
-    blurIntensity: 25,
-    blurTint: 'light' as const,
+    borderColor: 'rgba(148,163,184,0.08)',
+    blurIntensity: 60,
+    blurTint: 'dark' as const,
   },
 } as const;
 
@@ -55,21 +55,29 @@ export const glass = {
 export const glassStyles = {
   base: {
     backgroundColor: glass.base.backgroundColor,
+    borderWidth: glass.base.borderWidth,
+    borderColor: glass.base.borderColor,
   } as ViewStyle,
 
   card: {
     backgroundColor: glass.card.backgroundColor,
     borderRadius: glass.card.borderRadius,
+    borderWidth: glass.card.borderWidth,
+    borderColor: glass.card.borderColor,
   } as ViewStyle,
 
   elevated: {
     backgroundColor: glass.elevated.backgroundColor,
     borderRadius: glass.elevated.borderRadius,
+    borderWidth: glass.elevated.borderWidth,
+    borderColor: glass.elevated.borderColor,
   } as ViewStyle,
 
   modal: {
     backgroundColor: glass.modal.backgroundColor,
     borderRadius: glass.modal.borderRadius,
+    borderWidth: glass.modal.borderWidth,
+    borderColor: glass.modal.borderColor,
   } as ViewStyle,
 
   tabBar: {
@@ -79,36 +87,34 @@ export const glassStyles = {
   } as ViewStyle,
 } as const;
 
-// Card styles with shadows (Apple-style)
+// Card styles with dark surfaces
 export const cardStyles = {
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
+    backgroundColor: '#12121C',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
   } as ViewStyle,
 
   cardElevated: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
+    backgroundColor: '#1E1E2E',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
   } as ViewStyle,
 
   groupedCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#12121C',
     borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
   } as ViewStyle,
 
   insetGrouped: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#12121C',
     borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
     marginHorizontal: 16,
   } as ViewStyle,
 };

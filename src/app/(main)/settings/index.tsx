@@ -205,7 +205,7 @@ function SettingsScreen() {
       ]}
       showsVerticalScrollIndicator={false}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={colors.surfaceSecondary} />
+      <StatusBar barStyle="light-content" backgroundColor={colors.surfaceSecondary} />
 
       {/* Header */}
       <View style={styles.header}>

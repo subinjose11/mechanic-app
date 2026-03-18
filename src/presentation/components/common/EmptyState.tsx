@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Text, Icon } from 'react-native-paper';
 import { colors } from '@theme/colors';
 import { spacing } from '@theme/index';
@@ -23,9 +24,12 @@ export function EmptyState({
   style,
 }: EmptyStateProps) {
   return (
-    <View style={[styles.container, style]}>
+    <Animated.View
+      entering={FadeInDown.springify().damping(18).stiffness(200)}
+      style={[styles.container, style]}
+    >
       <View style={styles.iconContainer}>
-        <Icon source={icon} size={48} color={colors.systemGray3} />
+        <Icon source={icon} size={48} color={colors.systemGray} />
       </View>
       <Text style={styles.title}>{title}</Text>
       {description && <Text style={styles.description}>{description}</Text>}
@@ -34,7 +38,7 @@ export function EmptyState({
           {actionLabel}
         </Button>
       )}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -49,7 +53,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: colors.systemGray6,
+    backgroundColor: colors.surfaceSecondary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,

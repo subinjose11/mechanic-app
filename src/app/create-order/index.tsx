@@ -336,7 +336,7 @@ const CreateOrderScreen = observer(function CreateOrderScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
       <TopBar title="Create Order" />
 
       <KeyboardAvoidingView

@@ -19,8 +19,8 @@ export default function MainLayout() {
         tabBarBackground: () =>
           Platform.OS === 'ios' ? (
             <BlurView
-              intensity={80}
-              tint="light"
+              intensity={60}
+              tint="dark"
               style={StyleSheet.absoluteFill}
             >
               <View style={[StyleSheet.absoluteFill, styles.tabBarOverlay]} />
@@ -32,7 +32,7 @@ export default function MainLayout() {
           position: 'absolute',
           backgroundColor: 'transparent',
           borderTopWidth: 0.5,
-          borderTopColor: colors.separator,
+          borderTopColor: 'rgba(148,163,184,0.08)',
           height: 56 + bottomPadding,
           paddingBottom: bottomPadding,
           paddingTop: 6,
@@ -119,9 +119,9 @@ export default function MainLayout() {
 
 const styles = StyleSheet.create({
   tabBarOverlay: {
-    backgroundColor: 'rgba(255,255,255,0.92)',
+    backgroundColor: 'rgba(6,6,10,0.85)',
   },
   tabBarAndroid: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background,
   },
 });

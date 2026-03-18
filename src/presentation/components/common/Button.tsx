@@ -1,10 +1,12 @@
-import React, { useRef } from 'react';
-import { StyleSheet, ViewStyle, TextStyle, Pressable, Animated, View } from 'react-native';
+import React from 'react';
+import { StyleSheet, ViewStyle, TextStyle, Pressable, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { Text, ActivityIndicator } from 'react-native-paper';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@theme/colors';
 import { shadows } from '@theme/shadows';
-import { animations } from '@theme/animations';
 import { borderRadius } from '@theme/index';
+import { useAnimatedPress } from '@presentation/hooks/useAnimatedPress';
 
 interface ButtonProps {
   children: React.ReactNode;
@@ -30,22 +32,19 @@ export function Button({
   fullWidth = false,
   color = 'primary',
 }: ButtonProps) {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const { animatedStyle, handlePressIn, handlePressOut } = useAnimatedPress(0.97);
 
-  const handlePressIn = () => {
-    Animated.timing(scaleAnim, {
-      toValue: 0.98,
-      duration: animations.press.duration,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.timing(scaleAnim, {
-      toValue: 1,
-      duration: animations.press.duration,
-      useNativeDriver: true,
-    }).start();
+  const getGradientColors = (): readonly [string, string] => {
+    switch (color) {
+      case 'secondary':
+        return ['#06B6D4', '#22D3EE'] as const;
+      case 'error':
+        return ['#DC2626', '#EF4444'] as const;
+      case 'success':
+        return ['#16A34A', '#22C55E'] as const;
+      default:
+        return ['#6366F1', '#8B5CF6'] as const;
+    }
   };
 
   const getButtonColor = () => {
@@ -61,6 +60,19 @@ export function Button({
     }
   };
 
+  const getGlowShadow = () => {
+    switch (color) {
+      case 'secondary':
+        return shadows.glowCyan;
+      case 'error':
+        return shadows.glowError;
+      case 'success':
+        return shadows.glowSuccess;
+      default:
+        return shadows.glow;
+    }
+  };
+
   const isDisabled = disabled || loading;
   const buttonColor = getButtonColor();
 
@@ -68,8 +80,9 @@ export function Button({
     return (
       <Animated.View
         style={[
-          { transform: [{ scale: scaleAnim }] },
+          animatedStyle,
           fullWidth && styles.fullWidth,
+          !isDisabled && getGlowShadow(),
         ]}
       >
         <Pressable
@@ -77,22 +90,22 @@ export function Button({
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
           disabled={isDisabled}
-          style={[
-            styles.buttonBase,
-            styles.contained,
-            { backgroundColor: buttonColor },
-            shadows.sm,
-            isDisabled && styles.disabled,
-            style,
-          ]}
+          style={[isDisabled && styles.disabled]}
         >
-          {loading ? (
-            <ActivityIndicator size="small" color={colors.textOnPrimary} />
-          ) : (
-            <Text style={[styles.label, styles.labelContained, labelStyle]}>
-              {children}
-            </Text>
-          )}
+          <LinearGradient
+            colors={getGradientColors() as [string, string]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.buttonBase, styles.contained, style]}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color={colors.textOnPrimary} />
+            ) : (
+              <Text style={[styles.label, styles.labelContained, labelStyle]}>
+                {children}
+              </Text>
+            )}
+          </LinearGradient>
         </Pressable>
       </Animated.View>
     );
@@ -102,7 +115,7 @@ export function Button({
     return (
       <Animated.View
         style={[
-          { transform: [{ scale: scaleAnim }] },
+          animatedStyle,
           fullWidth && styles.fullWidth,
         ]}
       >

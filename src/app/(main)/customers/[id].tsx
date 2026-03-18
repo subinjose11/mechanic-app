@@ -65,7 +65,7 @@ const CustomerDetailScreen = observer(function CustomerDetailScreen() {
   if (isLoading || !customer) {
     return (
       <View style={styles.loadingContainer}>
-        <StatusBar barStyle="dark-content" backgroundColor={colors.surfaceSecondary} />
+        <StatusBar barStyle="light-content" backgroundColor={colors.surfaceSecondary} />
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Loading customer...</Text>
       </View>
@@ -81,7 +81,7 @@ const CustomerDetailScreen = observer(function CustomerDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
       <TopBar
         title="Customer Details"
         rightAction={

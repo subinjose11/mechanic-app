@@ -5,6 +5,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { observer } from 'mobx-react-lite';
 import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useOrderStore, useAuthStore } from '@stores';
 import { useOrderController } from '@controllers';
 import { colors } from '@theme/colors';
@@ -73,7 +74,7 @@ function JobsScreen() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'in_progress': return colors.primary;
-      case 'pending': return colors.systemOrange;
+      case 'pending': return colors.warning;
       case 'completed': return colors.success;
       default: return colors.textSecondary;
     }
@@ -88,54 +89,56 @@ function JobsScreen() {
     }
   };
 
-  const renderJob = ({ item }: { item: ServiceOrder }) => {
+  const renderJob = ({ item, index }: { item: ServiceOrder; index: number }) => {
     const statusColor = getStatusColor(item.status);
 
     return (
-      <Pressable
-        style={styles.jobCard}
-        onPress={() => router.push(`/(main)/orders/${item.id}`)}
-      >
-        {/* Description - Hero */}
-        <View style={styles.jobTop}>
-          <Text style={styles.jobDescription} numberOfLines={2}>
-            {item.description || 'No description'}
-          </Text>
-          <View style={[styles.statusBadge, { backgroundColor: statusColor + '15' }]}>
-            <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-            <Text style={[styles.statusText, { color: statusColor }]}>
-              {getStatusLabel(item.status)}
+      <Animated.View entering={FadeInDown.delay(index * 60).springify()}>
+        <Pressable
+          style={styles.jobCard}
+          onPress={() => router.push(`/(main)/orders/${item.id}`)}
+        >
+          {/* Description - Hero */}
+          <View style={styles.jobTop}>
+            <Text style={styles.jobDescription} numberOfLines={2}>
+              {item.description || 'No description'}
             </Text>
-          </View>
-        </View>
-
-        {/* Vehicle & Customer Info */}
-        <View style={styles.jobInfo}>
-          <View style={styles.infoRow}>
-            <View style={styles.plateBox}>
-              <Text style={styles.plateLabel}>REG</Text>
-              <Text style={styles.plateText}>{item.vehicleLicensePlate || 'N/A'}</Text>
-            </View>
-            <View style={styles.vehicleBox}>
-              <Text style={styles.vehicleName}>
-                {item.vehicleMake} {item.vehicleModel}
+            <View style={[styles.statusBadge, { backgroundColor: statusColor + '20', borderColor: statusColor + '30' }]}>
+              <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+              <Text style={[styles.statusText, { color: statusColor }]}>
+                {getStatusLabel(item.status)}
               </Text>
-              <View style={styles.customerRow}>
-                <Icon source="account" size={14} color={colors.textTertiary} />
-                <Text style={styles.customerName}>{item.customerName || 'Unknown'}</Text>
+            </View>
+          </View>
+
+          {/* Vehicle & Customer Info */}
+          <View style={styles.jobInfo}>
+            <View style={styles.infoRow}>
+              <View style={styles.plateBox}>
+                <Text style={styles.plateLabel}>REG</Text>
+                <Text style={styles.plateText}>{item.vehicleLicensePlate || 'N/A'}</Text>
+              </View>
+              <View style={styles.vehicleBox}>
+                <Text style={styles.vehicleName}>
+                  {item.vehicleMake} {item.vehicleModel}
+                </Text>
+                <View style={styles.customerRow}>
+                  <Icon source="account" size={14} color={colors.textTertiary} />
+                  <Text style={styles.customerName}>{item.customerName || 'Unknown'}</Text>
+                </View>
               </View>
             </View>
           </View>
-        </View>
 
-        {/* Footer */}
-        <View style={styles.jobFooter}>
-          <Text style={styles.jobDate}>{formatDate(item.createdAt)}</Text>
-          <Text style={[styles.jobAmount, item.status === 'completed' && { color: colors.success }]}>
-            {item.totalAmount ? formatCurrency(item.totalAmount) : '—'}
-          </Text>
-        </View>
-      </Pressable>
+          {/* Footer */}
+          <View style={styles.jobFooter}>
+            <Text style={styles.jobDate}>{formatDate(item.createdAt)}</Text>
+            <Text style={[styles.jobAmount, item.status === 'completed' && { color: colors.success }]}>
+              {item.totalAmount ? formatCurrency(item.totalAmount) : '—'}
+            </Text>
+          </View>
+        </Pressable>
+      </Animated.View>
     );
   };
 
@@ -143,12 +146,12 @@ function JobsScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
 
-      {/* Gradient Header */}
+      {/* Dark Header */}
       <LinearGradient
-        colors={[colors.primary, '#1a1a2e']}
+        colors={['#0C0C14', colors.background]}
         style={[styles.headerGradient, { paddingTop: insets.top }]}
         start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+        end={{ x: 0, y: 1 }}
       >
         <View style={styles.headerTop}>
           <Text style={styles.title}>Jobs</Text>
@@ -156,7 +159,7 @@ function JobsScreen() {
             style={styles.addButton}
             onPress={() => router.push('/create-order')}
           >
-            <Icon source="plus" size={24} color="#fff" />
+            <Icon source="plus" size={24} color={colors.textPrimary} />
           </Pressable>
         </View>
 
@@ -212,7 +215,7 @@ function JobsScreen() {
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <View style={styles.emptyIconBox}>
-                <Icon source="clipboard-text-outline" size={40} color={colors.systemGray3} />
+                <Icon source="clipboard-text-outline" size={40} color={colors.systemGray} />
               </View>
               <Text style={styles.emptyTitle}>No Jobs Found</Text>
               <Text style={styles.emptySubtitle}>
@@ -235,7 +238,7 @@ export default observer(JobsScreen);
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: colors.background,
   },
   // Header
   headerGradient: {
@@ -252,13 +255,16 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.textPrimary,
+    letterSpacing: -0.5,
   },
   addButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -271,18 +277,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
   },
   filterPillActive: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.primary,
   },
   filterText: {
     fontSize: 14,
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.7)',
+    color: colors.textSecondary,
   },
   filterTextActive: {
-    color: colors.primary,
+    color: '#fff',
   },
   // Loading
   loadingContainer: {
@@ -304,15 +310,12 @@ const styles = StyleSheet.create({
   },
   // Job Card
   jobCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   jobTop: {
     flexDirection: 'row',
@@ -334,6 +337,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 8,
+    borderWidth: 1,
     gap: 6,
   },
   statusDot: {
@@ -354,12 +358,12 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   plateBox: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: colors.surfaceSecondary,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: colors.border,
   },
   plateLabel: {
     fontSize: 9,
@@ -422,7 +426,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 24,
-    backgroundColor: '#f0f2f5',
+    backgroundColor: colors.surfaceSecondary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,

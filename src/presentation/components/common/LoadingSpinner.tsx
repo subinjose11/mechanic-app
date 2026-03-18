@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { ActivityIndicator, Text } from 'react-native-paper';
 import { colors } from '@theme/colors';
 
@@ -19,10 +20,13 @@ export function LoadingSpinner({
   style,
 }: LoadingSpinnerProps) {
   const content = (
-    <View style={[styles.container, fullScreen && styles.fullScreen, style]}>
+    <Animated.View
+      entering={FadeIn.duration(200)}
+      style={[styles.container, fullScreen && styles.fullScreen, style]}
+    >
       <ActivityIndicator size={size} color={color} />
       {message && <Text style={styles.message}>{message}</Text>}
-    </View>
+    </Animated.View>
   );
 
   if (fullScreen) {
@@ -43,7 +47,7 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: 'rgba(6,6,10,0.90)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 999,

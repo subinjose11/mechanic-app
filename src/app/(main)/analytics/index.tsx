@@ -75,7 +75,7 @@ const AnalyticsScreen = observer(function AnalyticsScreen() {
     backgroundGradientFrom: colors.surface,
     backgroundGradientTo: colors.surface,
     decimalPlaces: 0,
-    color: (opacity = 1) => `rgba(0, 122, 255, ${opacity})`,
+    color: (opacity = 1) => `rgba(99, 102, 241, ${opacity})`,
     labelColor: () => colors.textSecondary,
     style: { borderRadius: 16 },
     propsForDots: { r: '4', strokeWidth: '2', stroke: colors.primary },
@@ -100,7 +100,7 @@ const AnalyticsScreen = observer(function AnalyticsScreen() {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <StatusBar barStyle="dark-content" backgroundColor={colors.surfaceSecondary} />
+        <StatusBar barStyle="light-content" backgroundColor={colors.surfaceSecondary} />
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Loading analytics...</Text>
       </View>
@@ -109,7 +109,7 @@ const AnalyticsScreen = observer(function AnalyticsScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
 
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>

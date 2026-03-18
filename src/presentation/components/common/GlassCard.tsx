@@ -1,14 +1,18 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import {
   Pressable,
   View,
   StyleSheet,
   ViewStyle,
-  Animated,
+  Platform,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import { shadows } from '@theme/shadows';
-import { animations } from '@theme/animations';
 import { colors } from '@theme/colors';
+import { glass } from '@theme/glass';
+import { useAnimatedPress } from '@presentation/hooks/useAnimatedPress';
+import { GlassView } from './GlassView';
 
 interface GlassCardProps {
   children: React.ReactNode;
@@ -30,82 +34,62 @@ export function GlassCard({
   disabled = false,
   glow = false,
 }: GlassCardProps) {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const { animatedStyle, handlePressIn, handlePressOut } = useAnimatedPress(0.97);
 
-  const handlePressIn = () => {
-    Animated.timing(scaleAnim, {
-      toValue: animations.press.scale,
-      duration: animations.press.duration,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.timing(scaleAnim, {
-      toValue: 1,
-      duration: animations.press.duration,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const getLevelStyles = () => {
-    switch (level) {
-      case 'base':
-        return { borderRadius: 10 };
-      case 'elevated':
-        return { borderRadius: 14, ...shadows.md };
-      case 'modal':
-        return { borderRadius: 16, ...shadows.lg };
-      case 'card':
-      default:
-        return { borderRadius: 12, ...shadows.sm };
-    }
-  };
-
-  const levelStyles = getLevelStyles();
-
-  const cardStyle = [
-    styles.card,
-    levelStyles,
-    glow && shadows.glowSubtle,
-    style,
-  ];
+  const config = glass[level];
+  const borderRadiusValue = 'borderRadius' in config ? config.borderRadius : 10;
 
   const innerContent = (
     <View style={[styles.content, contentStyle]}>
+      {/* Subtle top highlight */}
+      <LinearGradient
+        colors={['rgba(255,255,255,0.05)', 'transparent']}
+        style={[styles.topHighlight, { borderTopLeftRadius: borderRadiusValue, borderTopRightRadius: borderRadiusValue }]}
+      />
       {children}
     </View>
   );
 
+  const glassLevel = level === 'modal' ? 'modal' : level === 'elevated' ? 'elevated' : level === 'base' ? 'base' : 'card';
+
   if (onPress) {
     return (
-      <Animated.View style={[cardStyle, { transform: [{ scale: scaleAnim }] }]}>
+      <Animated.View style={[animatedStyle, glow && shadows.glowSubtle, style]}>
         <Pressable
           onPress={onPress}
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
           disabled={disabled}
-          style={[styles.pressable, disabled && styles.disabled]}
+          style={disabled ? styles.disabled : undefined}
         >
-          {innerContent}
+          <GlassView level={glassLevel}>
+            {innerContent}
+          </GlassView>
         </Pressable>
       </Animated.View>
     );
   }
 
-  return <View style={cardStyle}>{innerContent}</View>;
+  return (
+    <View style={[glow && shadows.glowSubtle, style]}>
+      <GlassView level={glassLevel}>
+        {innerContent}
+      </GlassView>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    overflow: 'hidden',
-  },
-  pressable: {
-    flex: 1,
-  },
   content: {
     padding: 16,
+    position: 'relative',
+  },
+  topHighlight: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 40,
   },
   disabled: {
     opacity: 0.5,

@@ -5,7 +5,7 @@ import { PaperProvider } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { observer } from 'mobx-react-lite';
-import { theme } from '@theme/index';
+import { theme, colors } from '@theme/index';
 import { RootStoreContext, rootStore } from '@stores/RootStore';
 import { authStore } from '@stores/AuthStore';
 
@@ -68,16 +68,16 @@ const AuthNavigator = observer(function AuthNavigator({ children }: { children: 
 
 function RootLayout() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
       <SafeAreaProvider>
         <RootStoreContext.Provider value={rootStore}>
           <PaperProvider theme={theme}>
             <AuthNavigator>
-              <StatusBar style="dark" />
+              <StatusBar style="light" />
               <Stack
                 screenOptions={{
                   headerShown: false,
-                  contentStyle: { backgroundColor: '#FFFFFF' },
+                  contentStyle: { backgroundColor: colors.background },
                 }}
               >
                 <Stack.Screen name="index" />
