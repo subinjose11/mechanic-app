@@ -68,7 +68,13 @@
       "Bash(sed -i '' \"s/contentStyle: { backgroundColor: ''#06060A'' },/contentStyle: { backgroundColor: ''#06060A'' },\\\\n        animation: ''fade_from_bottom'',/\" \"$f\")",
       "Bash(cat /Users/subinjose/Documents/rn_auto/mechanic-app/src/app/\\\\\\(main\\\\\\)/orders/[id]/preview.tsx)",
       "Bash(ls -la \"/Users/subinjose/Documents/rn_auto/mechanic-app/src/app/\\(main\\)/orders/[id]/\")",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(find /Users/subinjose/Documents/rn_auto/mechanic-app/src/app/order-detail/[id] -name \"*.tsx\")",
+      "Bash(/Users/subinjose/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.5/skills/brainstorming/scripts/start-server.sh --project-dir /Users/subinjose/Documents/rn_auto/mechanic-app)",
+      "Bash(/Users/subinjose/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.5/skills/brainstorming/scripts/stop-server.sh /Users/subinjose/Documents/rn_auto/mechanic-app/.superpowers/brainstorm/12433-1773833783)",
+      "Bash(lsof -ti:8081 -ti:8082)",
+      "Bash(xargs kill:*)",
+      "Bash(/Users/subinjose/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.5/skills/brainstorming/scripts/stop-server.sh /Users/subinjose/Documents/rn_auto/mechanic-app/.superpowers/brainstorm/14360-1773836835)"
     ]
   }
 }
