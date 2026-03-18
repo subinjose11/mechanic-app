@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect } from 'react';
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Text, IconButton, Snackbar } from 'react-native-paper';
-import { router } from 'expo-router';
+import { router, useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { observer } from 'mobx-react-lite';
@@ -12,12 +12,21 @@ import { colors } from '@theme/colors';
 import { isValidPhone } from '@core/utils/validators';
 
 const ShopProfileScreen = observer(function ShopProfileScreen() {
+  const navigation = useNavigation();
   const authStore = useAuthStore();
   const uiStore = useUIStore();
   const authController = useAuthController();
   const user = authStore.user;
   const isLoading = uiStore.isLoading;
   const error = authStore.error;
+
+  useLayoutEffect(() => {
+    const tabNavigator = navigation.getParent();
+    tabNavigator?.setOptions({ tabBarStyle: { display: 'none' } });
+    return () => {
+      tabNavigator?.setOptions({ tabBarStyle: undefined });
+    };
+  }, [navigation]);
 
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -82,7 +91,7 @@ const ShopProfileScreen = observer(function ShopProfileScreen() {
       // Update user profile
       await authController.updateProfile({
         name: form.name.trim(),
-        phone: form.phone.trim() || undefined,
+        ...(form.phone.trim() ? { phone: form.phone.trim() } : {}),
       });
       setSnackbarVisible(true);
     } catch (err) {
@@ -210,20 +219,24 @@ const ShopProfileScreen = observer(function ShopProfileScreen() {
         </ScrollView>
 
         <View style={styles.footer}>
-          <Button
-            onPress={() => router.back()}
-            mode="outlined"
-            style={styles.footerButton}
-          >
-            Cancel
-          </Button>
-          <Button
-            onPress={handleSave}
-            loading={isSubmitting}
-            style={styles.footerButton}
-          >
-            Save Changes
-          </Button>
+          <View style={styles.footerButton}>
+            <Button
+              onPress={() => router.back()}
+              mode="outlined"
+              fullWidth
+            >
+              Cancel
+            </Button>
+          </View>
+          <View style={styles.footerButton}>
+            <Button
+              onPress={handleSave}
+              loading={isSubmitting}
+              fullWidth
+            >
+              Save Changes
+            </Button>
+          </View>
         </View>
       </KeyboardAvoidingView>
 

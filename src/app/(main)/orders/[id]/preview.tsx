@@ -5,9 +5,7 @@ import {
   ScrollView,
   StatusBar,
   Pressable,
-  Share,
   Alert,
-  Linking,
   Animated,
 } from 'react-native';
 import { Text, Icon, ActivityIndicator } from 'react-native-paper';
@@ -15,11 +13,12 @@ import { useLocalSearchParams, router, useNavigation } from 'expo-router';
 import { observer } from 'mobx-react-lite';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useOrderStore, useAuthStore } from '@stores';
+import { useOrderStore, useAuthStore, useCustomerStore } from '@stores';
 import { useOrderController } from '@controllers';
 import { colors } from '@theme/colors';
-import { formatDateTime, formatDate } from '@core/utils/formatDate';
+import { formatDate } from '@core/utils/formatDate';
 import { formatCurrency } from '@core/utils/formatCurrency';
+import { pdfGenerator } from '@services/pdf/PdfGenerator';
 
 const ReceiptPreviewScreen = observer(function ReceiptPreviewScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -28,6 +27,7 @@ const ReceiptPreviewScreen = observer(function ReceiptPreviewScreen() {
   const orderStore = useOrderStore();
   const orderController = useOrderController();
   const authStore = useAuthStore();
+  const customerStore = useCustomerStore();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
 
@@ -44,6 +44,16 @@ const ReceiptPreviewScreen = observer(function ReceiptPreviewScreen() {
       orderController.fetchWithDetails(id);
     }
   }, [id]);
+
+  useEffect(() => {
+    const order = orderStore.currentOrder;
+    if (order?.customerId) {
+      const existing = customerStore.getById(order.customerId);
+      if (!existing) {
+        customerStore.fetchById(order.customerId);
+      }
+    }
+  }, [orderStore.currentOrder?.customerId]);
 
   useEffect(() => {
     Animated.parallel([
@@ -79,96 +89,30 @@ const ReceiptPreviewScreen = observer(function ReceiptPreviewScreen() {
     return `INV-${year}${month}-${order.id.slice(-6).toUpperCase()}`;
   };
 
-  const generateReceiptText = () => {
-    if (!order) return '';
-
-    const shopName = authStore.shopName || 'Auto Service Center';
-    const invoiceNo = generateInvoiceNumber();
-
-    let receipt = `━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-    receipt += `       *${shopName}*\n`;
-    receipt += `━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
-
-    receipt += `*Invoice:* ${invoiceNo}\n`;
-    receipt += `*Date:* ${formatDateTime(order.createdAt)}\n\n`;
-
-    receipt += `─── VEHICLE ───\n`;
-    receipt += `*Reg No:* ${order.vehicleLicensePlate}\n`;
-    receipt += `*Vehicle:* ${order.vehicleMake} ${order.vehicleModel}\n`;
-    receipt += `*Customer:* ${order.customerName}\n`;
-
-    if (order.kmReading) {
-      receipt += `*Odometer:* ${order.kmReading.toLocaleString()} km\n`;
-    }
-
-    if (order.description) {
-      receipt += `\n─── WORK DONE ───\n`;
-      receipt += `${order.description}\n`;
-    }
-
-    if (order.laborItems && order.laborItems.length > 0) {
-      receipt += `\n─── LABOR CHARGES ───\n`;
-      order.laborItems.forEach((item) => {
-        receipt += `• ${item.description}\n`;
-        receipt += `  ${formatCurrency(item.total)}\n`;
-      });
-      receipt += `*Labor Total:* ${formatCurrency(totals.labor)}\n`;
-    }
-
-    if (order.spareParts && order.spareParts.length > 0) {
-      receipt += `\n─── SPARE PARTS ───\n`;
-      order.spareParts.forEach((item) => {
-        const qty = item.quantity > 1 ? ` (x${item.quantity})` : '';
-        receipt += `• ${item.partName}${qty}\n`;
-        receipt += `  ${formatCurrency(item.total)}\n`;
-      });
-      receipt += `*Parts Total:* ${formatCurrency(totals.parts)}\n`;
-    }
-
-    receipt += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-    receipt += `*GRAND TOTAL:* ${formatCurrency(totals.total)}\n`;
-    receipt += `*PAID:* ${formatCurrency(totals.paid)}\n`;
-    receipt += `*BALANCE DUE:* ${formatCurrency(totals.due)}\n`;
-    receipt += `━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
-
-    receipt += `Thank you for choosing us!\n`;
-    receipt += `We appreciate your business.`;
-
-    return receipt;
-  };
-
-  const handleShare = async () => {
-    const receipt = generateReceiptText();
-    try {
-      await Share.share({
-        message: receipt,
-      });
-    } catch (error) {
-      console.error('Share error:', error);
-    }
-  };
-
-  const handleWhatsAppShare = async () => {
-    const receipt = generateReceiptText();
-    const encodedMessage = encodeURIComponent(receipt);
-    const whatsappUrl = `whatsapp://send?text=${encodedMessage}`;
+  const handleSharePdf = async () => {
+    if (!order) return;
 
     try {
-      const canOpen = await Linking.canOpenURL(whatsappUrl);
-      if (canOpen) {
-        await Linking.openURL(whatsappUrl);
-      } else {
-        Alert.alert(
-          'WhatsApp Not Found',
-          'WhatsApp is not installed on this device.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Share via Other', onPress: handleShare },
-          ]
-        );
+      const shop = authStore.user;
+      if (!shop) {
+        Alert.alert('Error', 'Shop information not available.');
+        return;
       }
+
+      const customer = order.customerId ? customerStore.getById(order.customerId) : undefined;
+
+      await pdfGenerator.shareInvoice({
+        order,
+        shop,
+        customerName: order.customerName || '',
+        customerPhone: customer?.phone || '',
+        customerAddress: customer?.address || '',
+        vehicleName: `${order.vehicleMake} ${order.vehicleModel}`,
+        licensePlate: order.vehicleLicensePlate || '',
+      });
     } catch (error) {
-      handleShare();
+      console.error('PDF share error:', error);
+      Alert.alert('Error', 'Failed to generate PDF invoice.');
     }
   };
 
@@ -183,7 +127,6 @@ const ReceiptPreviewScreen = observer(function ReceiptPreviewScreen() {
   }
 
   const invoiceNo = generateInvoiceNumber();
-  const shopName = authStore.shopName || 'Auto Service Center';
 
   return (
     <View style={styles.container}>
@@ -228,20 +171,6 @@ const ReceiptPreviewScreen = observer(function ReceiptPreviewScreen() {
                 ))}
               </View>
             </View>
-
-            {/* Shop Header */}
-            <LinearGradient
-              colors={[colors.primary, '#4361ee']}
-              style={styles.shopHeader}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              <View style={styles.shopLogoContainer}>
-                <Icon source="car-wrench" size={32} color="#fff" />
-              </View>
-              <Text style={styles.shopName}>{shopName}</Text>
-              <Text style={styles.shopTagline}>Professional Auto Care</Text>
-            </LinearGradient>
 
             {/* Invoice Info */}
             <View style={styles.invoiceInfo}>
@@ -457,19 +386,16 @@ const ReceiptPreviewScreen = observer(function ReceiptPreviewScreen() {
 
       {/* Bottom Actions */}
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}>
-        <Pressable style={styles.whatsappButton} onPress={handleWhatsAppShare}>
+        <Pressable style={styles.whatsappButton} onPress={handleSharePdf}>
           <LinearGradient
-            colors={['#25D366', '#128C7E']}
+            colors={[colors.primary, '#4361ee']}
             style={styles.whatsappGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
           >
-            <Icon source="whatsapp" size={24} color="#fff" />
-            <Text style={styles.whatsappText}>Share via WhatsApp</Text>
+            <Icon source="file-pdf-box" size={24} color="#fff" />
+            <Text style={styles.whatsappText}>Share PDF Invoice</Text>
           </LinearGradient>
-        </Pressable>
-        <Pressable style={styles.shareButton} onPress={handleShare}>
-          <Icon source="share-variant" size={24} color={colors.primary} />
         </Pressable>
       </View>
     </View>
@@ -579,31 +505,6 @@ const styles = StyleSheet.create({
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
     borderBottomColor: colors.background,
-  },
-  // Shop Header
-  shopHeader: {
-    padding: 24,
-    alignItems: 'center',
-  },
-  shopLogoContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  shopName: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#fff',
-    letterSpacing: 1,
-  },
-  shopTagline: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: 4,
   },
   // Invoice Info
   invoiceInfo: {
@@ -934,13 +835,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
-  },
-  shareButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 14,
-    backgroundColor: colors.primaryDim,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });

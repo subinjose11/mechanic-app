@@ -1,8 +1,8 @@
-import { ServiceOrderWithDetails } from '@domain/entities/ServiceOrder';
+import { ServiceOrderWithDetails } from '@models/ServiceOrder';
 import { User } from '@domain/entities/User';
 import { formatCurrency } from '@core/utils/formatCurrency';
 import { formatDate, formatDateTime } from '@core/utils/formatDate';
-import { ORDER_STATUS_LABELS, PAYMENT_METHOD_LABELS } from '@core/constants';
+import { PAYMENT_METHOD_LABELS } from '@core/constants';
 
 interface InvoiceData {
   order: ServiceOrderWithDetails;
@@ -23,8 +23,6 @@ export function generateInvoiceHTML(data: InvoiceData): string {
       <tr>
         <td>${index + 1}</td>
         <td>${item.description}</td>
-        <td class="center">${item.hours} hrs</td>
-        <td class="right">${formatCurrency(item.ratePerHour)}</td>
         <td class="right">${formatCurrency(item.total)}</td>
       </tr>
     `
@@ -66,27 +64,38 @@ export function generateInvoiceHTML(data: InvoiceData): string {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Invoice - ${order.id}</title>
       <style>
+        @page {
+          margin: 40px;
+        }
         * {
           margin: 0;
           padding: 0;
           box-sizing: border-box;
+        }
+        html, body {
+          height: 100%;
         }
         body {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           font-size: 12px;
           line-height: 1.5;
           color: #333;
-          padding: 20px;
+          padding: 0;
+          display: flex;
+          flex-direction: column;
+        }
+        .content {
+          flex: 1;
         }
         .header {
           display: flex;
           justify-content: space-between;
-          border-bottom: 2px solid #1976D2;
+          border-bottom: 2px solid #6366F1;
           padding-bottom: 15px;
           margin-bottom: 20px;
         }
         .shop-info h1 {
-          color: #1976D2;
+          color: #6366F1;
           font-size: 24px;
           margin-bottom: 5px;
         }
@@ -98,7 +107,7 @@ export function generateInvoiceHTML(data: InvoiceData): string {
           text-align: right;
         }
         .invoice-info h2 {
-          color: #1976D2;
+          color: #6366F1;
           font-size: 18px;
         }
         .invoice-info p {
@@ -131,27 +140,15 @@ export function generateInvoiceHTML(data: InvoiceData): string {
         .info-box .primary {
           font-weight: 600;
           font-size: 14px;
-          color: #1976D2;
+          color: #6366F1;
         }
-        .status-badge {
-          display: inline-block;
-          padding: 3px 10px;
-          border-radius: 12px;
-          font-size: 10px;
-          font-weight: 600;
-          text-transform: uppercase;
-        }
-        .status-pending { background: #FFF3E0; color: #E65100; }
-        .status-in_progress { background: #E3F2FD; color: #1565C0; }
-        .status-completed { background: #E8F5E9; color: #2E7D32; }
-        .status-cancelled { background: #FAFAFA; color: #757575; }
         table {
           width: 100%;
           border-collapse: collapse;
           margin-bottom: 20px;
         }
         th {
-          background: #1976D2;
+          background: #6366F1;
           color: white;
           padding: 10px 8px;
           text-align: left;
@@ -186,8 +183,8 @@ export function generateInvoiceHTML(data: InvoiceData): string {
         .summary-table .total-row td {
           font-size: 16px;
           font-weight: 700;
-          border-top: 2px solid #1976D2;
-          color: #1976D2;
+          border-top: 2px solid #6366F1;
+          color: #6366F1;
         }
         .summary-table .balance-row td {
           font-size: 14px;
@@ -195,32 +192,17 @@ export function generateInvoiceHTML(data: InvoiceData): string {
           color: ${order.balanceDue > 0 ? '#D32F2F' : '#2E7D32'};
         }
         .footer {
-          margin-top: 40px;
+          margin-top: auto;
           padding-top: 20px;
           border-top: 1px solid #ddd;
           text-align: center;
           color: #999;
           font-size: 10px;
         }
-        .notes {
-          background: #FFF8E1;
-          padding: 12px;
-          border-radius: 8px;
-          margin-top: 20px;
-          border-left: 4px solid #FFC107;
-        }
-        .notes h4 {
-          font-size: 11px;
-          color: #F57C00;
-          margin-bottom: 5px;
-        }
-        @media print {
-          body { padding: 0; }
-          .no-print { display: none; }
-        }
       </style>
     </head>
     <body>
+      <div class="content">
       <div class="header">
         <div class="shop-info">
           <h1>${shop.shopName || 'Mechanic Shop'}</h1>
@@ -231,7 +213,6 @@ export function generateInvoiceHTML(data: InvoiceData): string {
           <h2>INVOICE</h2>
           <p><strong>Invoice #:</strong> ${order.id.slice(0, 8).toUpperCase()}</p>
           <p><strong>Date:</strong> ${formatDate(order.createdAt)}</p>
-          <p><strong>Status:</strong> <span class="status-badge status-${order.status}">${ORDER_STATUS_LABELS[order.status]}</span></p>
         </div>
       </div>
 
@@ -246,6 +227,7 @@ export function generateInvoiceHTML(data: InvoiceData): string {
           <h3>Vehicle Details</h3>
           <p class="primary">${vehicleName}</p>
           <p>${licensePlate}</p>
+          ${order.kmReading ? `<p>Odometer: ${order.kmReading.toLocaleString()} km</p>` : ''}
         </div>
       </div>
 
@@ -263,8 +245,6 @@ export function generateInvoiceHTML(data: InvoiceData): string {
             <tr>
               <th style="width: 40px">#</th>
               <th>Description</th>
-              <th class="center" style="width: 80px">Hours</th>
-              <th class="right" style="width: 100px">Rate</th>
               <th class="right" style="width: 100px">Amount</th>
             </tr>
           </thead>
@@ -331,13 +311,7 @@ export function generateInvoiceHTML(data: InvoiceData): string {
           </tbody>
         </table>
       ` : ''}
-
-      ${order.notes ? `
-        <div class="notes">
-          <h4>Notes</h4>
-          <p>${order.notes}</p>
-        </div>
-      ` : ''}
+      </div>
 
       <div class="footer">
         <p>Thank you for your business!</p>

@@ -1,7 +1,6 @@
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
-import { ServiceOrderWithDetails } from '@domain/entities/ServiceOrder';
+import { ServiceOrderWithDetails } from '@models/ServiceOrder';
 import { User } from '@domain/entities/User';
 import { generateInvoiceHTML } from './templates/invoiceTemplate';
 
@@ -49,12 +48,7 @@ class PdfGeneratorService {
     const html = generateInvoiceHTML(params);
     const { uri } = await Print.printToFileAsync({ html });
 
-    // Rename the file to a more descriptive name
-    const docDir = (FileSystem as any).documentDirectory as string;
-    const newUri = `${docDir}Invoice_${params.order.id.slice(0, 8)}.pdf`;
-    await (FileSystem as any).moveAsync({ from: uri, to: newUri });
-
-    return newUri;
+    return uri;
   }
 
   /**
@@ -92,13 +86,13 @@ class PdfGeneratorService {
         <meta charset="UTF-8">
         <style>
           body { font-family: sans-serif; padding: 20px; font-size: 12px; }
-          h1 { color: #1976D2; font-size: 20px; }
+          h1 { color: #6366F1; font-size: 20px; }
           .summary-box { background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 15px 0; }
           .stat { display: inline-block; width: 23%; text-align: center; }
-          .stat-value { font-size: 24px; font-weight: bold; color: #1976D2; }
+          .stat-value { font-size: 24px; font-weight: bold; color: #6366F1; }
           .stat-label { font-size: 10px; color: #666; }
           table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-          th { background: #1976D2; color: white; padding: 10px; text-align: left; }
+          th { background: #6366F1; color: white; padding: 10px; text-align: left; }
           td { padding: 10px; border-bottom: 1px solid #eee; }
           .right { text-align: right; }
         </style>

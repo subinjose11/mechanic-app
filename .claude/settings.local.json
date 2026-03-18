@@ -65,7 +65,10 @@
       "Bash(for f:*)",
       "Bash(do)",
       "Read(//Users/subinjose/Documents/rn_auto/mechanic-app/**)",
-      "Bash(sed -i '' \"s/contentStyle: { backgroundColor: ''#06060A'' },/contentStyle: { backgroundColor: ''#06060A'' },\\\\n        animation: ''fade_from_bottom'',/\" \"$f\")"
+      "Bash(sed -i '' \"s/contentStyle: { backgroundColor: ''#06060A'' },/contentStyle: { backgroundColor: ''#06060A'' },\\\\n        animation: ''fade_from_bottom'',/\" \"$f\")",
+      "Bash(cat /Users/subinjose/Documents/rn_auto/mechanic-app/src/app/\\\\\\(main\\\\\\)/orders/[id]/preview.tsx)",
+      "Bash(ls -la \"/Users/subinjose/Documents/rn_auto/mechanic-app/src/app/\\(main\\)/orders/[id]/\")",
+      "Bash(grep:*)"
     ]
   }
 }
