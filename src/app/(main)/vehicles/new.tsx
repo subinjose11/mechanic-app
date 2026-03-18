@@ -148,11 +148,11 @@ const NewVehicleScreen = observer(function NewVehicleScreen() {
         customerId: form.customerId,
         make: form.make,
         model: form.model,
-        year: form.year ? parseInt(form.year, 10) : undefined,
+        year: form.year ? parseInt(form.year, 10) : null,
         licensePlate: form.licensePlate,
-        vin: form.vin || undefined,
-        color: form.color || undefined,
-        notes: form.notes || undefined,
+        vin: form.vin || null,
+        color: form.color || null,
+        notes: form.notes || null,
       };
 
       if (isEditMode && editId) {
@@ -364,7 +364,7 @@ const NewVehicleScreen = observer(function NewVehicleScreen() {
                 mode="outlined"
                 onPress={() => {
                   setShowCustomerPicker(false);
-                  router.push('/(main)/customers/new');
+                  router.push('/customer-new');
                 }}
                 style={styles.addButton}
               >

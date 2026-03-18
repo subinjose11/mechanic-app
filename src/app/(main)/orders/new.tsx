@@ -252,7 +252,7 @@ const NewOrderScreen = observer(function NewOrderScreen() {
               style={styles.quickAddRow}
               onPress={() => {
                 setShowVehiclePicker(false);
-                router.push(`/(main)/quick-add?plate=${encodeURIComponent(searchQuery)}&createOrder=true`);
+                router.push(`/quick-add?plate=${encodeURIComponent(searchQuery)}&createOrder=true`);
               }}
             >
               <View style={[styles.quickAddIcon, { backgroundColor: colors.successDim }]}>
@@ -276,7 +276,7 @@ const NewOrderScreen = observer(function NewOrderScreen() {
                 mode="contained"
                 onPress={() => {
                   setShowVehiclePicker(false);
-                  router.push(`/(main)/quick-add?plate=${encodeURIComponent(searchQuery)}&createOrder=true`);
+                  router.push(`/quick-add?plate=${encodeURIComponent(searchQuery)}&createOrder=true`);
                 }}
                 style={styles.addButton}
                 icon="plus"

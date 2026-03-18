@@ -14,7 +14,7 @@ import {
   Alert,
 } from 'react-native';
 import { Text, Icon, ActivityIndicator, Menu } from 'react-native-paper';
-import { useLocalSearchParams, router, useNavigation } from 'expo-router';
+import { useLocalSearchParams, router, useNavigation, usePathname } from 'expo-router';
 import { observer } from 'mobx-react-lite';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -149,6 +149,8 @@ const OrderDetailScreen = observer(function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const pathname = usePathname();
+  const isRootStack = pathname.startsWith('/order-detail');
   const orderStore = useOrderStore();
   const orderController = useOrderController();
 
@@ -291,7 +293,8 @@ const OrderDetailScreen = observer(function OrderDetailScreen() {
       >
         <View style={styles.headerTop}>
           <Pressable style={styles.backBtn} onPress={() => router.back()}>
-            <Icon source="arrow-left" size={24} color="#fff" />
+            <Icon source="chevron-left" size={24} color={colors.primary} />
+            <Text style={styles.backText}>Back</Text>
           </Pressable>
           <Text style={styles.headerLabel}>Job Details</Text>
           <Menu
@@ -457,7 +460,7 @@ const OrderDetailScreen = observer(function OrderDetailScreen() {
             title="Payment History"
             subtitle={paymentCount > 0 ? `${paymentCount} payment${paymentCount > 1 ? 's' : ''}` : 'Record payment'}
             value={paymentCount > 0 ? formatCurrency(totals.paid) : undefined}
-            onPress={() => router.push(`/(main)/orders/${id}/payment`)}
+            onPress={() => router.push(isRootStack ? `/order-detail/${id}/payment` : `/(main)/orders/${id}/payment`)}
             showAdd={paymentCount === 0}
           />
         </View>
@@ -510,7 +513,7 @@ const OrderDetailScreen = observer(function OrderDetailScreen() {
           </View>
           <Pressable
             style={styles.previewButton}
-            onPress={() => router.push(`/(main)/orders/${id}/preview`)}
+            onPress={() => router.push(isRootStack ? `/order-detail/${id}/preview` : `/(main)/orders/${id}/preview`)}
           >
             <LinearGradient
               colors={[colors.primary, '#4361ee']}
@@ -662,17 +665,21 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   backBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    marginLeft: -8,
+    paddingVertical: 8,
+    paddingRight: 8,
+  },
+  backText: {
+    fontSize: 17,
+    color: colors.primary,
+    marginLeft: -2,
   },
   headerLabel: {
     fontSize: 17,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.textPrimary,
   },
   menuBtn: {
     width: 44,

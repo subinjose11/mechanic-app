@@ -39,7 +39,7 @@ const VehicleDetailScreen = observer(function VehicleDetailScreen() {
 
   const handleEdit = () => {
     setMenuVisible(false);
-    router.push(`/(main)/vehicles/new?id=${id}`);
+    router.push(`/vehicle-new?id=${id}`);
   };
 
   const handleDelete = () => {
@@ -195,7 +195,7 @@ const VehicleDetailScreen = observer(function VehicleDetailScreen() {
             <Text style={styles.sectionLabel}>OWNER</Text>
             <Card
               style={styles.ownerCard}
-              onPress={() => router.push(`/(main)/customers/${customer.id}`)}
+              onPress={() => router.push(`/customer-detail/${customer.id}`)}
             >
               <View style={styles.ownerTop}>
                 <View style={styles.ownerAvatar}>
@@ -249,7 +249,7 @@ const VehicleDetailScreen = observer(function VehicleDetailScreen() {
               <Card
                 key={order.id}
                 style={styles.orderCard}
-                onPress={() => router.push(`/(main)/orders/${order.id}`)}
+                onPress={() => router.push(`/order-detail/${order.id}`)}
               >
                 <View style={styles.orderTop}>
                   <View style={styles.orderIcon}>

@@ -338,7 +338,7 @@ const NewAppointmentScreen = observer(function NewAppointmentScreen() {
                     mode="outlined"
                     onPress={() => {
                       setShowVehiclePicker(false);
-                      router.push('/(main)/quick-add');
+                      router.push('/quick-add');
                     }}
                     style={styles.addButton}
                   >

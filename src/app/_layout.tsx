@@ -78,12 +78,19 @@ function RootLayout() {
                 screenOptions={{
                   headerShown: false,
                   contentStyle: { backgroundColor: colors.background },
+                  animation: 'fade_from_bottom',
                 }}
               >
                 <Stack.Screen name="index" />
                 <Stack.Screen name="(auth)" />
                 <Stack.Screen name="(main)" />
                 <Stack.Screen name="create-order" />
+                <Stack.Screen name="order-detail" />
+                <Stack.Screen name="customer-detail" />
+                <Stack.Screen name="vehicle-detail" />
+                <Stack.Screen name="vehicle-new" />
+                <Stack.Screen name="customer-new" />
+                <Stack.Screen name="quick-add" />
               </Stack>
             </AuthNavigator>
           </PaperProvider>

@@ -5,6 +5,8 @@ export default function AnalyticsLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
+        contentStyle: { backgroundColor: '#06060A' },
+        animation: 'fade_from_bottom',
       }}
     />
   );

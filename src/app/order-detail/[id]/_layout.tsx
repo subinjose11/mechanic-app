@@ -1,9 +1,8 @@
 import { Stack } from 'expo-router';
 
-export default function OrdersLayout() {
+export default function OrderDetailRootLayout() {
   return (
     <Stack
-      initialRouteName="index"
       screenOptions={{
         headerShown: false,
         contentStyle: { backgroundColor: '#06060A' },
@@ -11,8 +10,11 @@ export default function OrdersLayout() {
       }}
     >
       <Stack.Screen name="index" />
-      <Stack.Screen name="new" />
-      <Stack.Screen name="[id]" />
+      <Stack.Screen name="payment" />
+      <Stack.Screen name="preview" />
+      <Stack.Screen name="labor" />
+      <Stack.Screen name="parts" />
+      <Stack.Screen name="photos" />
     </Stack>
   );
 }

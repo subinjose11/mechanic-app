@@ -196,7 +196,8 @@ const ReceiptPreviewScreen = observer(function ReceiptPreviewScreen() {
       >
         <View style={styles.headerContent}>
           <Pressable style={styles.backBtn} onPress={() => router.back()}>
-            <Icon source="arrow-left" size={24} color="#fff" />
+            <Icon source="chevron-left" size={24} color={colors.primary} />
+            <Text style={styles.backBtnText}>Back</Text>
           </Pressable>
           <Text style={styles.headerTitle}>Receipt Preview</Text>
           <View style={styles.headerRight} />
@@ -505,17 +506,21 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   backBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    marginLeft: -8,
+    paddingVertical: 8,
+    paddingRight: 8,
+  },
+  backBtnText: {
+    fontSize: 17,
+    color: colors.primary,
+    marginLeft: -2,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.textPrimary,
   },
   headerRight: {
     width: 44,

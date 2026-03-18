@@ -12,6 +12,7 @@ export default function MainLayout() {
 
   return (
     <Tabs
+      sceneStyle={{ backgroundColor: colors.background }}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,

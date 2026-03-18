@@ -29,7 +29,7 @@ const CustomerDetailScreen = observer(function CustomerDetailScreen() {
 
   const handleEdit = () => {
     setMenuVisible(false);
-    router.push(`/(main)/customers/new?id=${id}`);
+    router.push(`/customer-new?id=${id}`);
   };
 
   const handleDelete = () => {
@@ -171,7 +171,7 @@ const CustomerDetailScreen = observer(function CustomerDetailScreen() {
             <Text style={styles.sectionLabel}>VEHICLES</Text>
             <Text
               style={styles.addLink}
-              onPress={() => router.push(`/(main)/vehicles/new?customerId=${id}`)}
+              onPress={() => router.push(`/vehicle-new?customerId=${id}`)}
             >
               Add
             </Text>
@@ -182,7 +182,7 @@ const CustomerDetailScreen = observer(function CustomerDetailScreen() {
               <GlassCard
                 key={vehicle.id}
                 style={styles.vehicleCard}
-                onPress={() => router.push(`/(main)/vehicles/${vehicle.id}`)}
+                onPress={() => router.push(`/vehicle-detail/${vehicle.id}`)}
               >
                 <View style={styles.vehicleRow}>
                   <View style={styles.vehicleIconWrap}>
@@ -217,7 +217,7 @@ const CustomerDetailScreen = observer(function CustomerDetailScreen() {
         <View style={styles.actions}>
           <Button
             mode="contained"
-            onPress={() => router.push(`/(main)/vehicles/new?customerId=${id}`)}
+            onPress={() => router.push(`/vehicle-new?customerId=${id}`)}
             fullWidth
           >
             Add Vehicle

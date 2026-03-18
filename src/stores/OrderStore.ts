@@ -278,7 +278,10 @@ class OrderStore {
       await Promise.all([...laborPromises, ...partPromises, paymentPromise]);
 
       runInAction(() => {
-        this.orders.unshift(order);
+        // Only add locally if not already present (subscription may have already added it)
+        if (!this.orders.some((o) => o.id === order.id)) {
+          this.orders.unshift(order);
+        }
         this.isLoading = false;
       });
 
@@ -322,7 +325,9 @@ class OrderStore {
       );
 
       runInAction(() => {
-        this.orders.unshift(order);
+        if (!this.orders.some((o) => o.id === order.id)) {
+          this.orders.unshift(order);
+        }
         this.isLoading = false;
       });
 

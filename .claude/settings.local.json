@@ -58,7 +58,14 @@
       "Bash(git commit:*)",
       "Bash(git push:*)",
       "Bash(xargs -I {} basename {})",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(while read:*)",
+      "Bash(do sed:*)",
+      "Bash(done)",
+      "Bash(for f:*)",
+      "Bash(do)",
+      "Read(//Users/subinjose/Documents/rn_auto/mechanic-app/**)",
+      "Bash(sed -i '' \"s/contentStyle: { backgroundColor: ''#06060A'' },/contentStyle: { backgroundColor: ''#06060A'' },\\\\n        animation: ''fade_from_bottom'',/\" \"$f\")"
     ]
   }
 }

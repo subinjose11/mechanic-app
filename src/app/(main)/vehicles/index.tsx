@@ -124,7 +124,8 @@ const VehiclesScreen = observer(function VehiclesScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <Pressable style={styles.backButton} onPress={() => router.replace('/(main)/home')}>
-          <Icon source="arrow-left" size={24} color={colors.textPrimary} />
+          <Icon source="chevron-left" size={24} color={colors.primary} />
+          <Text style={styles.backButtonText}>Back</Text>
         </Pressable>
         <Text style={styles.headerTitle}>Vehicles</Text>
         <View style={styles.countBadge}>
@@ -225,13 +226,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.systemGray6,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
+    marginLeft: -8,
+    paddingVertical: 8,
+    paddingRight: 8,
+    marginRight: 4,
+  },
+  backButtonText: {
+    fontSize: 17,
+    color: colors.primary,
+    marginLeft: -2,
   },
   headerTitle: {
     flex: 1,

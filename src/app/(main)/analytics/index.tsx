@@ -212,9 +212,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   headerTitle: {
-    fontSize: 34,
+    fontSize: 28,
     fontWeight: '700',
     color: colors.textPrimary,
+    letterSpacing: -0.5,
   },
   headerSubtitle: {
     fontSize: 15,

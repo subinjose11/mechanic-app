@@ -210,10 +210,10 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   headerTitle: {
-    fontSize: 25,
-    fontWeight: '800',
+    fontSize: 28,
+    fontWeight: '700',
     color: colors.textPrimary,
-    lineHeight: 30,
+    letterSpacing: -0.5,
     letterSpacing: -0.5,
   },
   headerSubtitle: {

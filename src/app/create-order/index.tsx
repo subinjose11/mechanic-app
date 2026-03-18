@@ -295,6 +295,7 @@ const CreateOrderScreen = observer(function CreateOrderScreen() {
   };
 
   const handleSubmit = async () => {
+    if (isSubmitting) return;
     if (!validate() || !selectedCustomer || !selectedVehicle) return;
 
     setIsSubmitting(true);
@@ -747,7 +748,7 @@ const CreateOrderScreen = observer(function CreateOrderScreen() {
               style={styles.addNewRow}
               onPress={() => {
                 setShowCustomerPicker(false);
-                router.push('/(main)/customers/new?fromCreateOrder=true');
+                router.push('/customer-new?fromCreateOrder=true');
               }}
             >
               <View style={[styles.addNewIcon, { backgroundColor: colors.successDim }]}>
@@ -833,8 +834,8 @@ const CreateOrderScreen = observer(function CreateOrderScreen() {
                 setShowVehiclePicker(false);
                 router.push(
                   selectedCustomer
-                    ? `/(main)/vehicles/new?customerId=${selectedCustomer.id}&fromCreateOrder=true`
-                    : '/(main)/vehicles/new?fromCreateOrder=true'
+                    ? `/vehicle-new?customerId=${selectedCustomer.id}&fromCreateOrder=true`
+                    : '/vehicle-new?fromCreateOrder=true'
                 );
               }}
             >
