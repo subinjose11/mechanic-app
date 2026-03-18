@@ -129,7 +129,7 @@ Split the current 1,133-line monolith into focused components:
 src/app/(main)/orders/[id]/
 ├── index.tsx                    # Main screen (orchestration, data loading)
 ├── _layout.tsx                  # Stack navigator (existing)
-└── components/
+└── _components/
     ├── VehicleInfoCard.tsx       # Header vehicle card
     ├── FinancialStats.tsx        # 3-column stats row
     ├── QuickActions.tsx          # 4-button action grid
